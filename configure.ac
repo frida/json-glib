@@ -292,10 +292,6 @@ AS_IF([test "x$use_gcov" = "xyes"],
 
 AM_CONDITIONAL(ENABLE_GCOV, test "x$use_gcov" = "xyes")
 
-dnl === Documentation =========================================================
-
-GTK_DOC_CHECK([1.20], [--flavour no-tmpl])
-
 AC_ARG_ENABLE([man,],
               [AS_HELP_STRING([--enable-man], [generate man pages @<:@default=auto@:>@])],
               [],
@@ -351,9 +347,6 @@ GOBJECT_INTROSPECTION_CHECK([0.9.5])
 
 dnl === Localization ==========================================================
 
-AM_GNU_GETTEXT_VERSION([0.18])
-AM_GNU_GETTEXT([external])
-
 GETTEXT_PACKAGE="json-glib-1.0"
 AC_SUBST(GETTEXT_PACKAGE)
 AC_DEFINE_UNQUOTED([GETTEXT_PACKAGE],
@@ -380,12 +373,6 @@ AC_CONFIG_FILES([
         json-glib/json-glib.pc
         json-glib/json-version.h
         json-glib/tests/Makefile
-
-        doc/Makefile
-        doc/reference/Makefile
-        doc/reference/version.xml
-
-        po/Makefile.in
 ])
 
 AC_OUTPUT
