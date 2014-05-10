@@ -30,4 +30,4 @@ popd &>/dev/null
 
 [ $result -ne 0 ] && exit $result
 
-./configure $*
+test -n "$NOCONFIGURE" || ./configure $*
