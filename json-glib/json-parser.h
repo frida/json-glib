@@ -147,6 +147,8 @@ GType json_parser_get_type (void) G_GNUC_CONST;
 
 JSON_AVAILABLE_IN_1_0
 JsonParser *json_parser_new                     (void);
+JSON_AVAILABLE_IN_1_2
+JsonParser *json_parser_new_immutable           (void);
 JSON_AVAILABLE_IN_1_0
 gboolean    json_parser_load_from_file          (JsonParser           *parser,
                                                  const gchar          *filename,
@@ -182,6 +184,10 @@ guint       json_parser_get_current_pos         (JsonParser           *parser);
 JSON_AVAILABLE_IN_1_0
 gboolean    json_parser_has_assignment          (JsonParser           *parser,
                                                  gchar               **variable_name);
+
+#ifdef G_DEFINE_AUTOPTR_CLEANUP_FUNC
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (JsonParser, g_object_unref)
+#endif
 
 G_END_DECLS
 

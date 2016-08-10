@@ -1,22 +1,13 @@
 NULL =
 
-GENERATED_ITEMS =	\
-	json-glib.vcxproj		\
-	json-glib.vcxproj.filters	\
-	json-glib-install.props
-
-json-glib-install.props: $(top_srcdir)/build/win32/vs10/json-glib-install.propsin json-glib.vs10.headers
-	$(CPP) -P - <$(top_srcdir)/build/win32/vs10/json-glib-install.propsin >$@
-	rm json-glib.vs10.headers
-
 EXTRA_DIST =	\
 	json-glib.sln			\
 	json-glib-version-paths.props	\
 	json-glib-build-defines.props	\
 	json-glib-gen-srcs.props	\
-	json-glib-install.propsin	\
-	json-glib.vcxprojin		\
-	json-glib.vcxproj.filtersin	\
+	json-glib-install.props	\
+	json-glib.vcxproj		\
+	json-glib.vcxproj.filters	\
 	json-glib-format.vcxproj		\
 	json-glib-format.vcxproj.filters	\
 	json-glib-validate.vcxproj		\
@@ -51,7 +42,12 @@ EXTRA_DIST =	\
 	README.txt	\
 	invalid.vcxproj	\
 	invalid.vcxproj.filters	\
-	$(GENERATED_ITEMS)		\
 	$(NULL)
 
-DISTCLEANFILES = $(GENERATED_ITEMS)
+MSVC_VER = 11
+MSVC_FORMAT_VER = 12
+MSVC_VER_LONG = 2012
+
+DISTCLEANFILES = $(EXTRA_DIST)
+
+include $(top_srcdir)/build/Makefile-newvs.am

@@ -56,7 +56,7 @@ json_array_new (void)
 {
   JsonArray *array;
 
-  array = g_slice_new (JsonArray);
+  array = g_slice_new0 (JsonArray);
 
   array->ref_count = 1;
   array->elements = g_ptr_array_new ();
@@ -77,7 +77,7 @@ json_array_sized_new (guint n_elements)
 {
   JsonArray *array;
 
-  array = g_slice_new (JsonArray);
+  array = g_slice_new0 (JsonArray);
   
   array->ref_count = 1;
   array->elements = g_ptr_array_sized_new (n_elements);
@@ -100,7 +100,7 @@ json_array_ref (JsonArray *array)
   g_return_val_if_fail (array != NULL, NULL);
   g_return_val_if_fail (array->ref_count > 0, NULL);
 
-  g_atomic_int_add (&array->ref_count, 1);
+  array->ref_count++;
 
   return array;
 }
@@ -119,18 +119,67 @@ json_array_unref (JsonArray *array)
   g_return_if_fail (array != NULL);
   g_return_if_fail (array->ref_count > 0);
 
-  if (g_atomic_int_dec_and_test (&array->ref_count))
+  if (--array->ref_count == 0)
     {
       guint i;
 
       for (i = 0; i < array->elements->len; i++)
-        json_node_free (g_ptr_array_index (array->elements, i));
+        json_node_unref (g_ptr_array_index (array->elements, i));
 
       g_ptr_array_free (array->elements, TRUE);
       array->elements = NULL;
 
       g_slice_free (JsonArray, array);
     }
+}
+
+/**
+ * json_array_seal:
+ * @array: a #JsonArray
+ *
+ * Seals the #JsonArray, making it immutable to further changes. This will
+ * recursively seal all elements in the array too.
+ *
+ * If the @array is already immutable, this is a no-op.
+ *
+ * Since: 1.2
+ */
+void
+json_array_seal (JsonArray *array)
+{
+  guint i;
+
+  g_return_if_fail (array != NULL);
+  g_return_if_fail (array->ref_count > 0);
+
+  if (array->immutable)
+    return;
+
+  /* Propagate to all members. */
+  for (i = 0; i < array->elements->len; i++)
+    json_node_seal (g_ptr_array_index (array->elements, i));
+
+  array->immutable_hash = json_array_hash (array);
+  array->immutable = TRUE;
+}
+
+/**
+ * json_array_is_immutable:
+ * @array: a #JsonArray
+ *
+ * Check whether the given @array has been marked as immutable by calling
+ * json_array_seal() on it.
+ *
+ * Since: 1.2
+ * Returns: %TRUE if the @array is immutable
+ */
+gboolean
+json_array_is_immutable (JsonArray *array)
+{
+  g_return_val_if_fail (array != NULL, FALSE);
+  g_return_val_if_fail (array->ref_count > 0, FALSE);
+
+  return array->immutable;
 }
 
 /**
@@ -169,7 +218,7 @@ json_array_get_elements (JsonArray *array)
  * element at @index_ inside a #JsonArray
  *
  * Return value: (transfer full): a copy of the #JsonNode at the requested
- *   index. Use json_node_free() when done.
+ *   index. Use json_node_unref() when done.
  *
  * Since: 0.6
  */
@@ -487,7 +536,7 @@ json_array_add_int_element (JsonArray *array,
 {
   g_return_if_fail (array != NULL);
 
-  g_ptr_array_add (array->elements, json_node_init_int (json_node_alloc (), value));
+  json_array_add_element (array, json_node_init_int (json_node_alloc (), value));
 }
 
 /**
@@ -507,7 +556,7 @@ json_array_add_double_element (JsonArray *array,
 {
   g_return_if_fail (array != NULL);
 
-  g_ptr_array_add (array->elements, json_node_init_double (json_node_alloc (), value));
+  json_array_add_element (array, json_node_init_double (json_node_alloc (), value));
 }
 
 /**
@@ -527,7 +576,7 @@ json_array_add_boolean_element (JsonArray *array,
 {
   g_return_if_fail (array != NULL);
 
-  g_ptr_array_add (array->elements, json_node_init_boolean (json_node_alloc (), value));
+  json_array_add_element (array, json_node_init_boolean (json_node_alloc (), value));
 }
 
 /**
@@ -551,12 +600,12 @@ json_array_add_string_element (JsonArray   *array,
 
   node = json_node_alloc ();
 
-  if (value != NULL && *value != '\0')
+  if (value != NULL)
     json_node_init_string (node, value);
   else
     json_node_init_null (node);
 
-  g_ptr_array_add (array->elements, node);
+  json_array_add_element (array, node);
 }
 
 /**
@@ -574,7 +623,7 @@ json_array_add_null_element (JsonArray *array)
 {
   g_return_if_fail (array != NULL);
 
-  g_ptr_array_add (array->elements, json_node_init_null (json_node_alloc ()));
+  json_array_add_element (array, json_node_init_null (json_node_alloc ()));
 }
 
 /**
@@ -607,7 +656,7 @@ json_array_add_array_element (JsonArray *array,
   else
     json_node_init_null (node);
 
-  g_ptr_array_add (array->elements, node);
+  json_array_add_element (array, node);
 }
 
 /**
@@ -640,7 +689,7 @@ json_array_add_object_element (JsonArray  *array,
   else
     json_node_init_null (node);
 
-  g_ptr_array_add (array->elements, node);
+  json_array_add_element (array, node);
 }
 
 /**
@@ -658,7 +707,7 @@ json_array_remove_element (JsonArray *array,
   g_return_if_fail (array != NULL);
   g_return_if_fail (index_ < array->elements->len);
 
-  json_node_free (g_ptr_array_remove_index (array->elements, index_));
+  json_node_unref (g_ptr_array_remove_index (array->elements, index_));
 }
 
 /**
@@ -694,4 +743,93 @@ json_array_foreach_element (JsonArray        *array,
 
       (* func) (array, i, element_node, data);
     }
+}
+
+/**
+ * json_array_hash:
+ * @key: (type JsonArray): a JSON array to hash
+ *
+ * Calculate a hash value for the given @key (a #JsonArray).
+ *
+ * The hash is calculated over the array and all its elements, recursively. If
+ * the array is immutable, this is a fast operation; otherwise, it scales
+ * proportionally with the length of the array.
+ *
+ * Returns: hash value for @key
+ * Since: 1.2
+ */
+guint
+json_array_hash (gconstpointer key)
+{
+  JsonArray *array;  /* unowned */
+  guint hash = 0;
+  guint i;
+
+  g_return_val_if_fail (key != NULL, 0);
+
+  array = (JsonArray *) key;
+
+  /* If the array is immutable, we can use the calculated hash. */
+  if (array->immutable)
+    return array->immutable_hash;
+
+  /* Otherwise, calculate the hash. */
+  for (i = 0; i < array->elements->len; i++)
+    {
+      JsonNode *node = g_ptr_array_index (array->elements, i);
+      hash ^= (i ^ json_node_hash (node));
+    }
+
+  return hash;
+}
+
+/**
+ * json_array_equal:
+ * @a: (type JsonArray): a JSON array
+ * @b: (type JsonArray): another JSON array
+ *
+ * Check whether @a and @b are equal #JsonArrays, meaning they have the same
+ * number of elements, and the values of elements in corresponding positions
+ * are equal.
+ *
+ * Returns: %TRUE if @a and @b are equal; %FALSE otherwise
+ * Since: 1.2
+ */
+gboolean
+json_array_equal (gconstpointer a,
+                  gconstpointer b)
+{
+  JsonArray *array_a, *array_b;  /* unowned */
+  guint length_a, length_b, i;
+
+  g_return_val_if_fail (a != NULL, FALSE);
+  g_return_val_if_fail (b != NULL, FALSE);
+
+  array_a = (JsonArray *) a;
+  array_b = (JsonArray *) b;
+
+  /* Identity comparison. */
+  if (array_a == array_b)
+    return TRUE;
+
+  /* Check lengths. */
+  length_a = json_array_get_length (array_a);
+  length_b = json_array_get_length (array_b);
+
+  if (length_a != length_b)
+    return FALSE;
+
+  /* Check elements. */
+  for (i = 0; i < length_a; i++)
+    {
+      JsonNode *child_a, *child_b;  /* unowned */
+
+      child_a = json_array_get_element (array_a, i);
+      child_b = json_array_get_element (array_b, i);
+
+      if (!json_node_equal (child_a, child_b))
+        return FALSE;
+    }
+
+  return TRUE;
 }

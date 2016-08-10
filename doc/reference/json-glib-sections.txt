@@ -5,6 +5,10 @@ JsonObject
 json_object_new
 json_object_ref
 json_object_unref
+json_object_seal
+json_object_is_immutable
+json_object_hash
+json_object_equal
 
 <SUBSECTION>
 json_object_add_member
@@ -18,6 +22,9 @@ json_object_get_size
 json_object_remove_member
 JsonObjectForeach
 json_object_foreach_member
+JsonObjectIter
+json_object_iter_init
+json_object_iter_next
 
 <SUBSECTION>
 json_object_set_array_member
@@ -48,6 +55,10 @@ json_array_new
 json_array_sized_new
 json_array_ref
 json_array_unref
+json_array_seal
+json_array_is_immutable
+json_array_hash
+json_array_equal
 
 <SUBSECTION>
 json_array_add_element
@@ -103,6 +114,12 @@ json_node_init_array
 json_node_new
 json_node_copy
 json_node_free
+json_node_ref
+json_node_unref
+json_node_is_immutable
+json_node_seal
+json_node_hash
+json_node_equal
 
 <SUBSECTION>
 json_node_set_array
@@ -137,6 +154,11 @@ json_node_get_value_type
 json_node_get_node_type
 json_node_is_null
 
+<SUBSECTION>
+json_string_hash
+json_string_equal
+json_string_compare
+
 <SUBSECTION Private>
 JSON_DEPRECATED
 JSON_DEPRECATED_FOR
@@ -153,6 +175,7 @@ JsonParserError
 JsonParser
 JsonParserClass
 json_parser_new
+json_parser_new_immutable
 json_parser_load_from_file
 json_parser_load_from_data
 json_parser_load_from_stream
@@ -298,12 +321,16 @@ JSON_VERSION_MIN_REQUIRED
 JSON_VERSION_MAX_ALLOWED
 
 <SUBSECTION Standard>
-JSON_VERSION_1_0
 JSON_VERSION_CUR_STABLE
 JSON_VERSION_PREV_STABLE
+JSON_VERSION_1_0
 JSON_AVAILABLE_IN_1_0
 JSON_DEPRECATED_IN_1_0
 JSON_DEPRECATED_IN_1_0_FOR
+JSON_VERSION_1_2
+JSON_AVAILABLE_IN_1_2
+JSON_DEPRECATED_IN_1_2
+JSON_DEPRECATED_IN_1_2_FOR
 
 <SUBSECTION Private>
 JSON_ENCODE_VERSION
@@ -318,6 +345,7 @@ _JSON_EXTERN
 JsonBuilder
 JsonBuilderClass
 json_builder_new
+json_builder_new_immutable
 json_builder_get_root
 json_builder_reset
 <SUBSECTION>
@@ -406,4 +434,10 @@ JSON_IS_PATH
 <SUBSECTION Private>
 json_path_get_type
 json_path_error_quark
+</SECTION>
+
+<SECTION>
+<FILE>json-utils</FILE>
+json_from_string
+json_to_string
 </SECTION>

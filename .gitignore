@@ -1,6 +1,5 @@
 ABOUT-NLS
 INSTALL
-README
 Makefile
 Makefile.in
 aclocal.m4
@@ -79,5 +78,3 @@ test-report.html
 omf.make
 xmldocs.make
 *.gcov
-/x86
-/x86_64

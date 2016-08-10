@@ -61,12 +61,12 @@ json_object_new (void)
 {
   JsonObject *object;
 
-  object = g_slice_new (JsonObject);
+  object = g_slice_new0 (JsonObject);
   
   object->ref_count = 1;
   object->members = g_hash_table_new_full (g_str_hash, g_str_equal,
                                            g_free,
-                                           (GDestroyNotify) json_node_free);
+                                           (GDestroyNotify) json_node_unref);
   object->members_ordered = NULL;
 
   return object;
@@ -87,7 +87,7 @@ json_object_ref (JsonObject *object)
   g_return_val_if_fail (object != NULL, NULL);
   g_return_val_if_fail (object->ref_count > 0, NULL);
 
-  g_atomic_int_add (&object->ref_count, 1);
+  object->ref_count++;
 
   return object;
 }
@@ -106,7 +106,7 @@ json_object_unref (JsonObject *object)
   g_return_if_fail (object != NULL);
   g_return_if_fail (object->ref_count > 0);
 
-  if (g_atomic_int_dec_and_test (&object->ref_count))
+  if (--object->ref_count == 0)
     {
       g_list_free (object->members_ordered);
       g_hash_table_destroy (object->members);
@@ -115,6 +115,58 @@ json_object_unref (JsonObject *object)
 
       g_slice_free (JsonObject, object);
     }
+}
+
+/**
+ * json_object_seal:
+ * @object: a #JsonObject
+ *
+ * Seals the #JsonObject, making it immutable to further changes. This will
+ * recursively seal all members of the object too.
+ *
+ * If the @object is already immutable, this is a no-op.
+ *
+ * Since: 1.2
+ */
+void
+json_object_seal (JsonObject *object)
+{
+  JsonObjectIter iter;
+  JsonNode *node;
+
+  g_return_if_fail (object != NULL);
+  g_return_if_fail (object->ref_count > 0);
+
+  if (object->immutable)
+    return;
+
+  /* Propagate to all members. */
+  json_object_iter_init (&iter, object);
+
+  while (json_object_iter_next (&iter, NULL, &node))
+    json_node_seal (node);
+
+  object->immutable_hash = json_object_hash (object);
+  object->immutable = TRUE;
+}
+
+/**
+ * json_object_is_immutable:
+ * @object: a #JsonObject
+ *
+ * Check whether the given @object has been marked as immutable by calling
+ * json_object_seal() on it.
+ *
+ * Since: 1.2
+ * Returns: %TRUE if the @object is immutable
+ */
+gboolean
+json_object_is_immutable (JsonObject *object)
+{
+  g_return_val_if_fail (object != NULL, FALSE);
+  g_return_val_if_fail (object->ref_count > 0, FALSE);
+
+  return object->immutable;
 }
 
 static inline void
@@ -474,7 +526,7 @@ json_object_get_values (JsonObject *object)
  * inside a #JsonObject
  *
  * Return value: (transfer full): a copy of the node for the requested
- *   object member or %NULL. Use json_node_free() when done.
+ *   object member or %NULL. Use json_node_unref() when done.
  *
  * Since: 0.6
  */
@@ -722,11 +774,13 @@ json_object_get_array_member (JsonObject  *object,
  * @member_name: the name of the member
  *
  * Convenience function that retrieves the object
- * stored in @member_name of @object
+ * stored in @member_name of @object. It is an error to specify a @member_name
+ * which does not exist.
  *
  * See also: json_object_get_member()
  *
- * Return value: (transfer none): the object inside the object's member
+ * Return value: (transfer none) (nullable): the object inside the object’s
+ *    member, or %NULL if the value for the member is `null`
  *
  * Since: 0.8
  */
@@ -848,4 +902,171 @@ json_object_foreach_member (JsonObject        *object,
 
       func (object, member_name, member_node, data);
     }
+}
+
+/**
+ * json_object_hash:
+ * @key: (type JsonObject): a JSON object to hash
+ *
+ * Calculate a hash value for the given @key (a #JsonObject).
+ *
+ * The hash is calculated over the object and all its members, recursively. If
+ * the object is immutable, this is a fast operation; otherwise, it scales
+ * proportionally with the number of members in the object.
+ *
+ * Returns: hash value for @key
+ * Since: 1.2
+ */
+guint
+json_object_hash (gconstpointer key)
+{
+  JsonObject *object = (JsonObject *) key;
+  guint hash = 0;
+  JsonObjectIter iter;
+  const gchar *member_name;
+  JsonNode *node;
+
+  g_return_val_if_fail (object != NULL, 0);
+
+  /* If the object is immutable, use the cached hash. */
+  if (object->immutable)
+    return object->immutable_hash;
+
+  /* Otherwise, calculate from scratch. */
+  json_object_iter_init (&iter, object);
+
+  while (json_object_iter_next (&iter, &member_name, &node))
+    hash ^= (json_string_hash (member_name) ^ json_node_hash (node));
+
+  return hash;
+}
+
+/**
+ * json_object_equal:
+ * @a: (type JsonObject): a JSON object
+ * @b: (type JsonObject): another JSON object
+ *
+ * Check whether @a and @b are equal #JsonObjects, meaning they have the same
+ * set of members, and the values of corresponding members are equal.
+ *
+ * Returns: %TRUE if @a and @b are equal; %FALSE otherwise
+ * Since: 1.2
+ */
+gboolean
+json_object_equal (gconstpointer  a,
+                   gconstpointer  b)
+{
+  JsonObject *object_a, *object_b;
+  guint size_a, size_b;
+  JsonObjectIter iter_a;
+  JsonNode *child_a, *child_b;  /* unowned */
+  const gchar *member_name;
+
+  object_a = (JsonObject *) a;
+  object_b = (JsonObject *) b;
+
+  /* Identity comparison. */
+  if (object_a == object_b)
+    return TRUE;
+
+  /* Check sizes. */
+  size_a = json_object_get_size (object_a);
+  size_b = json_object_get_size (object_b);
+
+  if (size_a != size_b)
+    return FALSE;
+
+  /* Check member names and values. Check the member names first
+   * to avoid expensive recursive value comparisons which might
+   * be unnecessary. */
+  json_object_iter_init (&iter_a, object_a);
+
+  while (json_object_iter_next (&iter_a, &member_name, NULL))
+    {
+      if (!json_object_has_member (object_b, member_name))
+        return FALSE;
+    }
+
+  json_object_iter_init (&iter_a, object_a);
+
+  while (json_object_iter_next (&iter_a, &member_name, &child_a))
+    {
+      child_b = json_object_get_member (object_b, member_name);
+
+      if (!json_node_equal (child_a, child_b))
+        return FALSE;
+    }
+
+  return TRUE;
+}
+
+/**
+ * json_object_iter_init:
+ * @iter: an uninitialised #JsonObjectIter
+ * @object: the #JsonObject to iterate over
+ *
+ * Initialise the @iter and associate it with @object.
+ *
+ * |[<!-- language="C" -->
+ * JsonObjectIter iter;
+ * const gchar *member_name;
+ * JsonNode *member_node;
+ *
+ * json_object_iter_init (&iter, some_object);
+ * while (json_object_iter_next (&iter, &member_name, &member_node))
+ *   {
+ *     // Do something with @member_name and @member_node.
+ *   }
+ * ]|
+ *
+ * Since: 1.2
+ */
+void
+json_object_iter_init (JsonObjectIter  *iter,
+                       JsonObject      *object)
+{
+  JsonObjectIterReal *iter_real = (JsonObjectIterReal *) iter;;
+
+  g_return_if_fail (iter != NULL);
+  g_return_if_fail (object != NULL);
+  g_return_if_fail (object->ref_count > 0);
+
+  iter_real->object = object;
+  g_hash_table_iter_init (&iter_real->members_iter, object->members);
+}
+
+/**
+ * json_object_iter_next:
+ * @iter: a #JsonObjectIter
+ * @member_name: (out callee-allocates) (transfer none) (optional): return
+ *    location for the member name, or %NULL to ignore
+ * @member_node: (out callee-allocates) (transfer none) (optional): return
+ *    location for the member value, or %NULL to ignore
+ *
+ * Advance @iter and retrieve the next member in the object. If the end of the
+ * object is reached, %FALSE is returned and @member_name and @member_node are
+ * set to invalid values. After that point, the @iter is invalid.
+ *
+ * The order in which members are returned by the iterator is undefined. The
+ * iterator is invalidated if its #JsonObject is modified during iteration.
+ *
+ * Returns: %TRUE if @member_name and @member_node are valid; %FALSE if the end
+ *    of the object has been reached
+ *
+ * Since: 1.2
+ */
+gboolean
+json_object_iter_next (JsonObjectIter  *iter,
+                       const gchar    **member_name,
+                       JsonNode       **member_node)
+{
+  JsonObjectIterReal *iter_real = (JsonObjectIterReal *) iter;
+
+  g_return_val_if_fail (iter != NULL, FALSE);
+  g_return_val_if_fail (iter_real->object != NULL, FALSE);
+  g_return_val_if_fail (iter_real->object->ref_count > 0, FALSE);
+
+  return g_hash_table_iter_next (&iter_real->members_iter,
+                                 (gpointer *) member_name,
+                                 (gpointer *) member_node);
 }

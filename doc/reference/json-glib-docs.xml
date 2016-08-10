@@ -112,6 +112,11 @@
       <xi:include href="xml/json-builder.xml"/>
     </chapter>
 
+    <chapter>
+      <title>General Purpose API</title>
+      <xi:include href="xml/json-utils.xml"/>
+    </chapter>
+
   </part>
 
   <part id="json-advanced">
@@ -188,6 +193,11 @@
   <index role="1.0">
     <title>Index of new symbols in 1.0</title>
     <xi:include href="xml/api-index-1.0.xml"><xi:fallback/></xi:include>
+  </index>
+
+  <index role="1.2">
+    <title>Index of new symbols in 1.2</title>
+    <xi:include href="xml/api-index-1.2.xml"><xi:fallback/></xi:include>
   </index>
 
   <xi:include href="xml/annotation-glossary.xml"><xi:fallback/></xi:include>

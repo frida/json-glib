@@ -80,6 +80,8 @@ GType json_builder_get_type (void) G_GNUC_CONST;
 
 JSON_AVAILABLE_IN_1_0
 JsonBuilder *json_builder_new                (void);
+JSON_AVAILABLE_IN_1_2
+JsonBuilder *json_builder_new_immutable      (void);
 JSON_AVAILABLE_IN_1_0
 JsonNode    *json_builder_get_root           (JsonBuilder  *builder);
 JSON_AVAILABLE_IN_1_0
@@ -114,6 +116,10 @@ JsonBuilder *json_builder_add_string_value   (JsonBuilder  *builder,
                                               const gchar  *value);
 JSON_AVAILABLE_IN_1_0
 JsonBuilder *json_builder_add_null_value     (JsonBuilder  *builder);
+
+#ifdef G_DEFINE_AUTOPTR_CLEANUP_FUNC
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (JsonBuilder, g_object_unref)
+#endif
 
 G_END_DECLS
 

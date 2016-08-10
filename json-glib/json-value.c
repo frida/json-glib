@@ -2,6 +2,7 @@
  * 
  * This file is part of JSON-GLib
  * Copyright (C) 2012  Emmanuele Bassi <ebassi@gnome.org>
+ * Copyright (C) 2015 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,6 +19,7 @@
  *
  * Author:
  *   Emmanuele Bassi  <ebassi@linux.intel.com>
+ *   Philip Withnall  <philip.withnall@collabora.co.uk>
  */
 
 #include "config.h"
@@ -109,7 +111,7 @@ json_value_ref (JsonValue *value)
 {
   g_return_val_if_fail (value != NULL, NULL);
 
-  g_atomic_int_add (&value->ref_count, 1);
+  value->ref_count++;
 
   return value;
 }
@@ -119,7 +121,7 @@ json_value_unref (JsonValue *value)
 {
   g_return_if_fail (value != NULL);
 
-  if (g_atomic_int_dec_and_test (&value->ref_count))
+  if (--value->ref_count == 0)
     json_value_free (value);
 }
 
@@ -165,12 +167,77 @@ json_value_free (JsonValue *value)
     }
 }
 
+/**
+ * json_value_seal:
+ * @value: a #JsonValue
+ *
+ * Seals the #JsonValue, making it immutable to further changes.
+ *
+ * If the @value is already immutable, this is a no-op.
+ *
+ * Since: 1.2
+ */
+void
+json_value_seal (JsonValue *value)
+{
+  g_return_if_fail (JSON_VALUE_IS_VALID (value));
+  g_return_if_fail (value->ref_count > 0);
+
+  value->immutable = TRUE;
+}
+
+guint
+json_value_hash (gconstpointer key)
+{
+  JsonValue *value;
+  guint value_hash;
+  guint type_hash;
+
+  value = (JsonValue *) key;
+
+  /* Hash the type and value separately.
+   * Use the top 3 bits to store the type. */
+  type_hash = value->type << (sizeof (guint) * 8 - 3);
+
+  switch (value->type)
+    {
+    case JSON_VALUE_NULL:
+      value_hash = 0;
+      break;
+    case JSON_VALUE_BOOLEAN:
+      value_hash = json_value_get_boolean (value) ? 1 : 0;
+      break;
+    case JSON_VALUE_STRING:
+      value_hash = json_string_hash (json_value_get_string (value));
+      break;
+    case JSON_VALUE_INT: {
+      gint64 v = json_value_get_int (value);
+      value_hash = g_int64_hash (&v);
+      break;
+    }
+    case JSON_VALUE_DOUBLE: {
+      gdouble v = json_value_get_double (value);
+      value_hash = g_double_hash (&v);
+      break;
+    }
+    case JSON_VALUE_INVALID:
+    default:
+      g_assert_not_reached ();
+    }
+
+  /* Mask out the top 3 bits of the @value_hash. */
+  value_hash &= ~(7 << (sizeof (guint) * 8 - 3));
+
+  return (type_hash | value_hash);
+}
+
 #define _JSON_VALUE_DEFINE_SET(Type,EType,CType,VField) \
 void \
 json_value_set_##Type (JsonValue *value, CType VField) \
 { \
   g_return_if_fail (JSON_VALUE_IS_VALID (value)); \
   g_return_if_fail (JSON_VALUE_HOLDS (value, JSON_VALUE_##EType)); \
+  g_return_if_fail (!value->immutable); \
 \
   value->data.VField = VField; \
 \
@@ -202,6 +269,7 @@ json_value_set_string (JsonValue *value,
 {
   g_return_if_fail (JSON_VALUE_IS_VALID (value));
   g_return_if_fail (JSON_VALUE_HOLDS_STRING (value));
+  g_return_if_fail (!value->immutable);
 
   g_free (value->data.v_str);
   value->data.v_str = g_strdup (v_str);

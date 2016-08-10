@@ -1,8 +1,8 @@
 # bump micro_version to the next even number for each point release
 # bump micro_version to the next odd number after each release
 m4_define([json_major_version], [1])
-m4_define([json_minor_version], [0])
-m4_define([json_micro_version], [4])
+m4_define([json_minor_version], [2])
+m4_define([json_micro_version], [3])
 
 m4_define([json_version], [json_major_version.json_minor_version.json_micro_version])
 
@@ -13,7 +13,7 @@ m4_define([json_release_status],
 
 # bump up by 1 for every micro release with no API changes, otherwise
 # set to 0. after release, bump up by 1
-m4_define([json_interface_age], [4])
+m4_define([json_interface_age], [3])
 m4_define([json_binary_age], [m4_eval(100 * json_minor_version + json_micro_version)])
 
 m4_define([lt_current], [m4_eval(100 * json_minor_version + json_micro_version - json_interface_age)])
@@ -292,6 +292,10 @@ AS_IF([test "x$use_gcov" = "xyes"],
 
 AM_CONDITIONAL(ENABLE_GCOV, test "x$use_gcov" = "xyes")
 
+dnl === Documentation =========================================================
+
+GTK_DOC_CHECK([1.20], [--flavour no-tmpl])
+
 AC_ARG_ENABLE([man,],
               [AS_HELP_STRING([--enable-man], [generate man pages @<:@default=auto@:>@])],
               [],
@@ -347,6 +351,9 @@ GOBJECT_INTROSPECTION_CHECK([0.9.5])
 
 dnl === Localization ==========================================================
 
+AM_GNU_GETTEXT_VERSION([0.18])
+AM_GNU_GETTEXT([external])
+
 GETTEXT_PACKAGE="json-glib-1.0"
 AC_SUBST(GETTEXT_PACKAGE)
 AC_DEFINE_UNQUOTED([GETTEXT_PACKAGE],
@@ -368,11 +375,20 @@ AC_CONFIG_FILES([
         build/win32/config.h.win32
         build/win32/vs9/Makefile
         build/win32/vs10/Makefile
+        build/win32/vs11/Makefile
+        build/win32/vs12/Makefile
+        build/win32/vs14/Makefile
 
         json-glib/Makefile
         json-glib/json-glib.pc
         json-glib/json-version.h
         json-glib/tests/Makefile
+
+        doc/Makefile
+        doc/reference/Makefile
+        doc/reference/version.xml
+
+        po/Makefile.in
 ])
 
 AC_OUTPUT
