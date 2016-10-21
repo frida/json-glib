@@ -428,7 +428,7 @@ dump_object (JsonGenerator *generator,
              JsonObject    *object)
 {
   JsonGeneratorPrivate *priv = generator->priv;
-  GList *members, *l;
+  GList *l;
   gboolean pretty = priv->pretty;
   guint indent = priv->indent;
   guint i;
@@ -438,9 +438,7 @@ dump_object (JsonGenerator *generator,
   if (pretty)
     g_string_append_c (buffer, '\n');
 
-  members = json_object_get_members (object);
-
-  for (l = members; l != NULL; l = l->next)
+  for (l = object->members_ordered.head; l != NULL; l = l->next)
     {
       const gchar *member_name = l->data;
       JsonNode *cur = json_object_get_member (object, member_name);
@@ -453,8 +451,6 @@ dump_object (JsonGenerator *generator,
       if (pretty)
         g_string_append_c (buffer, '\n');
     }
-
-  g_list_free (members);
 
   if (pretty)
     {
