@@ -51,7 +51,6 @@ json_from_string (const char  *str,
                   GError     **error)
 {
   JsonParser *parser;
-  JsonNode *retval;
 
   g_return_val_if_fail (str != NULL, NULL);
 
@@ -63,11 +62,7 @@ json_from_string (const char  *str,
       return NULL;
     }
 
-  retval = json_node_copy (json_parser_get_root (parser));
-
-  g_object_unref (parser);
-
-  return retval;
+  return json_parser_unref_to_node (parser);
 }
 
 /**
