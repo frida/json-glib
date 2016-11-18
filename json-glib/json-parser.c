@@ -976,6 +976,54 @@ json_parser_new_immutable (void)
   return g_object_new (JSON_TYPE_PARSER, "immutable", TRUE, NULL);
 }
 
+/**
+ * json_parser_unref_to_node:
+ * @parser: (transfer full): a #JsonParser
+ *
+ * Unreferences the parser, and returns a node containing the same data
+ * as the top level node from the parsed JSON stream.
+ *
+ * As an optimization, the node is returned without copying if this was
+ * the last reference to the parser.
+ *
+ * Since: 1.2
+ * Returns: (transfer full) the top level #JsonNode
+ */
+JsonNode *
+json_parser_unref_to_node (JsonParser *parser)
+{
+  JsonParserPrivate *priv;
+  JsonNode *root;
+  gboolean is_last_ref;
+
+  g_return_val_if_fail (JSON_IS_PARSER (parser), NULL);
+
+  priv = parser->priv;
+
+  root = priv->root;
+  if (!root)
+    {
+      g_object_unref (parser);
+      return NULL;
+    }
+
+  json_node_ref (root);
+  g_object_unref (parser);
+  is_last_ref = g_atomic_int_get (&root->ref_count) == 1;
+
+  if (!is_last_ref)
+    {
+      JsonNode *copy;
+
+      copy = json_node_copy (root);
+      json_node_unref (root);
+
+      return copy;
+    }
+
+  return root;
+}
+
 static gboolean
 json_parser_load (JsonParser   *parser,
                   const gchar  *data,
