@@ -2,7 +2,7 @@ ACLOCAL_AMFLAGS = -I build/autotools
 
 EXTRA_DIST =
 
-SUBDIRS = json-glib build
+SUBDIRS = json-glib doc build po
 
 DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc --enable-man --enable-maintainer-flags --enable-introspection
 

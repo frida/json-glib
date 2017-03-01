@@ -494,6 +494,7 @@ json_reader_read_element (JsonReader *reader,
     case JSON_NODE_OBJECT:
       {
         JsonObject *object = json_node_get_object (priv->current_node);
+        GList *members;
         const gchar *name;
 
         if (index_ >= json_object_get_size (object))
@@ -504,10 +505,13 @@ json_reader_read_element (JsonReader *reader,
 
         priv->previous_node = priv->current_node;
 
-        name = g_queue_peek_nth (&object->members_ordered, index_);
+        members = json_object_get_members (object);
+        name = g_list_nth_data (members, index_);
 
         priv->current_node = json_object_get_member (object, name);
         g_ptr_array_add (priv->members, g_strdup (name));
+
+        g_list_free (members);
       }
       break;
 
@@ -732,8 +736,7 @@ gchar **
 json_reader_list_members (JsonReader *reader)
 {
   JsonReaderPrivate *priv;
-  GQueue *members;
-  GList *l;
+  GList *members, *l;
   gchar **retval;
   gint i;
 
@@ -756,13 +759,17 @@ json_reader_list_members (JsonReader *reader)
       return NULL;
     }
 
-  members = &json_node_get_object (priv->current_node)->members_ordered;
+  members = json_object_get_members (json_node_get_object (priv->current_node));
+  if (members == NULL)
+    return NULL;
 
-  retval = g_new (gchar*, g_queue_get_length (members) + 1);
-  for (l = members->head, i = 0; l != NULL; l = l->next, i += 1)
+  retval = g_new (gchar*, g_list_length (members) + 1);
+  for (l = members, i = 0; l != NULL; l = l->next, i += 1)
     retval[i] = g_strdup (l->data);
 
   retval[i] = NULL;
+
+  g_list_free (members);
 
   return retval;
 }

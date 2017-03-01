@@ -292,6 +292,10 @@ AS_IF([test "x$use_gcov" = "xyes"],
 
 AM_CONDITIONAL(ENABLE_GCOV, test "x$use_gcov" = "xyes")
 
+dnl === Documentation =========================================================
+
+GTK_DOC_CHECK([1.20], [--flavour no-tmpl])
+
 AC_ARG_ENABLE([man,],
               [AS_HELP_STRING([--enable-man], [generate man pages @<:@default=auto@:>@])],
               [],
@@ -347,12 +351,19 @@ GOBJECT_INTROSPECTION_CHECK([0.9.5])
 
 dnl === Localization ==========================================================
 
+AM_GNU_GETTEXT_VERSION([0.18])
+AM_GNU_GETTEXT([external])
+
 GETTEXT_PACKAGE="json-glib-1.0"
 AC_SUBST(GETTEXT_PACKAGE)
 AC_DEFINE_UNQUOTED([GETTEXT_PACKAGE],
                    ["$GETTEXT_PACKAGE"],
                    [The prefix for our gettext translation domains.])
 AS_ALL_LINGUAS
+
+dnl === MSVC toolset ==========================================================
+AM_CONDITIONAL(MSVC_BASE_NO_TOOLSET_SET, [test x$MSVC_BASE_TOOLSET = x])
+AM_CONDITIONAL(MSVC_NO_TOOLSET_SET, [test x$MSVC_TOOLSET = x])
 
 dnl === Output ================================================================
 
@@ -371,11 +382,18 @@ AC_CONFIG_FILES([
         build/win32/vs11/Makefile
         build/win32/vs12/Makefile
         build/win32/vs14/Makefile
+        build/win32/vs15/Makefile
 
         json-glib/Makefile
         json-glib/json-glib.pc
         json-glib/json-version.h
         json-glib/tests/Makefile
+
+        doc/Makefile
+        doc/reference/Makefile
+        doc/reference/version.xml
+
+        po/Makefile.in
 ])
 
 AC_OUTPUT

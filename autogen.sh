@@ -1,33 +1,49 @@
-#!/bin/bash
+#!/bin/sh
+# Run this to generate all the initial makefiles, etc.
 
-srcdir=`dirname $0`
-test -z "$srcdir" && srcdir=.
+test -n "$srcdir" || srcdir=`dirname "$0"`
+test -n "$srcdir" || srcdir=.
 
-pushd $srcdir &>/dev/null
+olddir=`pwd`
 
-if [ "$1" = "clean" ]; then
-  [ -f "Makefile" ] && make maintainer-clean
+cd $srcdir
+PROJECT=JSON-GLib
+TEST_TYPE=-f
+FILE=json-glib/json-glib.h
 
-  rm -f INSTALL README aclocal.m4 compile config.guess config.h \
-    config.h.in config.log config.status config.sub configure depcomp \
-    gum-1.0.pc install-sh libtool ltmain.sh missing stamp-h1 \
-    `find . -name Makefile` `find . -name Makefile.in`
-  rm -rf autom4te.cache
+test $TEST_TYPE $FILE || {
+	echo "You must run this script in the top-level $PROJECT directory"
+	exit 1
+}
 
-  popd &>/dev/null
-  exit 0
+# GNU gettext automake support doesn't get along with git.
+# https://bugzilla.gnome.org/show_bug.cgi?id=661128
+touch -t 200001010000 "$srcdir/po/json-glib-1.0.pot"
+
+GTKDOCIZE=`which gtkdocize`
+if test -z $GTKDOCIZE; then
+        echo "*** No GTK-Doc found, please install it ***"
+        exit 1
 fi
 
-# README and INSTALL are required by automake, but may be deleted by clean
-# up rules. to get automake to work, simply touch these here, they will be
-# regenerated from their corresponding *.in files by ./configure anyway.
-touch README INSTALL
+AUTORECONF=`which autoreconf`
+if test -z $AUTORECONF; then
+        echo "*** No autoreconf found, please install it ***"
+        exit 1
+fi
 
-autoreconf -ifv
-result=$?
+# NOCONFIGURE is used by gnome-common
+if test -z "$NOCONFIGURE"; then
+        if test -z "$*"; then
+                echo "I am going to run ./configure with no arguments - if you wish "
+                echo "to pass any to it, please specify them on the $0 command line."
+        fi
+fi
 
-popd &>/dev/null
+rm -rf autom4te.cache
 
-[ $result -ne 0 ] && exit $result
+gtkdocize || exit $?
+autoreconf --force --install --verbose || exit $?
 
-test -n "$NOCONFIGURE" || ./configure $*
+cd "$olddir"
+test -n "$NOCONFIGURE" || "$srcdir/configure" "$@"
