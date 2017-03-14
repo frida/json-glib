@@ -77,3 +77,5 @@ test-report.html
 omf.make
 xmldocs.make
 *.gcov
+/x86
+/x86_64
