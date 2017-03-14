@@ -477,6 +477,41 @@ json_generator_new (void)
 }
 
 /**
+ * json_generator_to_string: (skip)
+ * @generator: a #JsonGenerator
+ * @string: (allow-none): a #GString, or %NULL
+ *
+ * Generates a JSON data stream from @generator
+ * and appends it to @string.
+ *
+ * If @string is %NULL then a new empty #GString
+ * is allocated and used.
+ *
+ * Return value: a #GString holding a JSON data stream.
+ *   Use g_string_free() to free the allocated resources.
+ *
+ * Since: 1.4
+ */
+GString *
+json_generator_to_string (JsonGenerator *generator,
+                          GString       *string)
+{
+  JsonNode *root;
+
+  g_return_val_if_fail (JSON_IS_GENERATOR (generator), NULL);
+
+  if (string == NULL)
+    string = g_string_new ("");
+
+  root = generator->priv->root;
+  if (!root)
+    return string;
+
+  dump_node (generator, string, 0, NULL, root);
+  return string;
+}
+
+/**
  * json_generator_to_data:
  * @generator: a #JsonGenerator
  * @length: (out): return location for the length of the returned
@@ -492,22 +527,12 @@ gchar *
 json_generator_to_data (JsonGenerator *generator,
                         gsize         *length)
 {
-  JsonNode *root;
   GString *string;
 
   g_return_val_if_fail (JSON_IS_GENERATOR (generator), NULL);
 
-  root = generator->priv->root;
-  if (!root)
-    {
-      if (length)
-        *length = 0;
-
-      return NULL;
-    }
-
   string = g_string_new ("");
-  dump_node (generator, string, 0, NULL, root);
+  json_generator_to_string (generator, string);
 
   if (length)
     *length = string->len;
