@@ -41,7 +41,6 @@
 #include "json-types-private.h"
 
 #include "json-debug.h"
-#include "json-marshal.h"
 #include "json-parser.h"
 #include "json-scanner.h"
 
@@ -238,7 +237,7 @@ json_parser_class_init (JsonParserClass *klass)
                   G_SIGNAL_RUN_LAST,
                   G_STRUCT_OFFSET (JsonParserClass, parse_start),
                   NULL, NULL,
-                  json_marshal_VOID__VOID,
+                  NULL,
                   G_TYPE_NONE, 0);
   /**
    * JsonParser::parse-end:
@@ -252,13 +251,12 @@ json_parser_class_init (JsonParserClass *klass)
                   G_OBJECT_CLASS_TYPE (gobject_class),
                   G_SIGNAL_RUN_LAST,
                   G_STRUCT_OFFSET (JsonParserClass, parse_end),
-                  NULL, NULL,
-                  json_marshal_VOID__VOID,
+                  NULL, NULL, NULL,
                   G_TYPE_NONE, 0);
   /**
    * JsonParser::object-start:
    * @parser: the #JsonParser that received the signal
-   * 
+   *
    * The ::object-start signal is emitted each time the #JsonParser
    * starts parsing a #JsonObject.
    */
@@ -267,8 +265,7 @@ json_parser_class_init (JsonParserClass *klass)
                   G_OBJECT_CLASS_TYPE (gobject_class),
                   G_SIGNAL_RUN_LAST,
                   G_STRUCT_OFFSET (JsonParserClass, object_start),
-                  NULL, NULL,
-                  json_marshal_VOID__VOID,
+                  NULL, NULL, NULL,
                   G_TYPE_NONE, 0);
   /**
    * JsonParser::object-member:
@@ -285,8 +282,7 @@ json_parser_class_init (JsonParserClass *klass)
                   G_OBJECT_CLASS_TYPE (gobject_class),
                   G_SIGNAL_RUN_LAST,
                   G_STRUCT_OFFSET (JsonParserClass, object_member),
-                  NULL, NULL,
-                  json_marshal_VOID__BOXED_STRING,
+                  NULL, NULL, NULL,
                   G_TYPE_NONE, 2,
                   JSON_TYPE_OBJECT,
                   G_TYPE_STRING);
@@ -303,8 +299,7 @@ json_parser_class_init (JsonParserClass *klass)
                   G_OBJECT_CLASS_TYPE (gobject_class),
                   G_SIGNAL_RUN_LAST,
                   G_STRUCT_OFFSET (JsonParserClass, object_end),
-                  NULL, NULL,
-                  json_marshal_VOID__BOXED,
+                  NULL, NULL, NULL,
                   G_TYPE_NONE, 1,
                   JSON_TYPE_OBJECT);
   /**
@@ -319,8 +314,7 @@ json_parser_class_init (JsonParserClass *klass)
                   G_OBJECT_CLASS_TYPE (gobject_class),
                   G_SIGNAL_RUN_LAST,
                   G_STRUCT_OFFSET (JsonParserClass, array_start),
-                  NULL, NULL,
-                  json_marshal_VOID__VOID,
+                  NULL, NULL, NULL,
                   G_TYPE_NONE, 0);
   /**
    * JsonParser::array-element:
@@ -337,8 +331,7 @@ json_parser_class_init (JsonParserClass *klass)
                   G_OBJECT_CLASS_TYPE (gobject_class),
                   G_SIGNAL_RUN_LAST,
                   G_STRUCT_OFFSET (JsonParserClass, array_element),
-                  NULL, NULL,
-                  json_marshal_VOID__BOXED_INT,
+                  NULL, NULL, NULL,
                   G_TYPE_NONE, 2,
                   JSON_TYPE_ARRAY,
                   G_TYPE_INT);
@@ -355,8 +348,7 @@ json_parser_class_init (JsonParserClass *klass)
                   G_OBJECT_CLASS_TYPE (gobject_class),
                   G_SIGNAL_RUN_LAST,
                   G_STRUCT_OFFSET (JsonParserClass, array_end),
-                  NULL, NULL,
-                  json_marshal_VOID__BOXED,
+                  NULL, NULL, NULL,
                   G_TYPE_NONE, 1,
                   JSON_TYPE_ARRAY);
   /**
@@ -372,8 +364,7 @@ json_parser_class_init (JsonParserClass *klass)
                   G_OBJECT_CLASS_TYPE (gobject_class),
                   G_SIGNAL_RUN_LAST,
                   G_STRUCT_OFFSET (JsonParserClass, error),
-                  NULL, NULL,
-                  json_marshal_VOID__POINTER,
+                  NULL, NULL, NULL,
                   G_TYPE_NONE, 1,
                   G_TYPE_POINTER);
 }
@@ -610,7 +601,8 @@ json_parse_array (JsonParser   *parser,
 array_done:
   json_scanner_get_next_token (scanner);
 
-  json_array_seal (array);
+  if (priv->is_immutable)
+    json_array_seal (array);
 
   json_node_take_array (priv->current_node, array);
   if (priv->is_immutable)
@@ -676,7 +668,7 @@ json_parse_object (JsonParser   *parser,
       /* member name */
       token = json_scanner_get_next_token (scanner);
       name = g_strdup (scanner->value.v_string);
-      if (name == NULL || *name == '\0')
+      if (name == NULL)
         {
           JSON_NOTE (PARSER, "Empty object member name");
 
@@ -791,7 +783,8 @@ json_parse_object (JsonParser   *parser,
 
   json_scanner_get_next_token (scanner);
 
-  json_object_seal (object);
+  if (priv->is_immutable)
+    json_object_seal (object);
 
   json_node_take_object (priv->current_node, object);
   if (priv->is_immutable)
@@ -974,54 +967,6 @@ JsonParser *
 json_parser_new_immutable (void)
 {
   return g_object_new (JSON_TYPE_PARSER, "immutable", TRUE, NULL);
-}
-
-/**
- * json_parser_unref_to_node:
- * @parser: (transfer full): a #JsonParser
- *
- * Unreferences the parser, and returns a node containing the same data
- * as the top level node from the parsed JSON stream.
- *
- * As an optimization, the node is returned without copying if this was
- * the last reference to the parser.
- *
- * Since: 1.2
- * Returns: (transfer full) the top level #JsonNode
- */
-JsonNode *
-json_parser_unref_to_node (JsonParser *parser)
-{
-  JsonParserPrivate *priv;
-  JsonNode *root;
-  gboolean is_last_ref;
-
-  g_return_val_if_fail (JSON_IS_PARSER (parser), NULL);
-
-  priv = parser->priv;
-
-  root = priv->root;
-  if (!root)
-    {
-      g_object_unref (parser);
-      return NULL;
-    }
-
-  json_node_ref (root);
-  g_object_unref (parser);
-  is_last_ref = g_atomic_int_get (&root->ref_count) == 1;
-
-  if (!is_last_ref)
-    {
-      JsonNode *copy;
-
-      copy = json_node_copy (root);
-      json_node_unref (root);
-
-      return copy;
-    }
-
-  return root;
 }
 
 static gboolean

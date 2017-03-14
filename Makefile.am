@@ -1,8 +1,18 @@
 ACLOCAL_AMFLAGS = -I build/autotools
 
-EXTRA_DIST =
+EXTRA_DIST = \
+	meson.build \
+	meson_options.txt \
+	doc/reference/meson.build \
+	doc/reference/xml/meson.build \
+	doc/reference/xml/gtkdocentities.ent.in \
+	json-glib/meson.build \
+	json-glib/tests/meson.build \
+	json-glib/tests/gen-installed-test.py \
+	po/meson.build \
+	$()
 
-SUBDIRS = json-glib build
+SUBDIRS = json-glib doc build po
 
 DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc --enable-man --enable-maintainer-flags --enable-introspection
 

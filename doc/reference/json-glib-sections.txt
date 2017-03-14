@@ -1,3 +1,5 @@
+<INCLUDE>json-glib/json-glib.h</INCLUDE>
+
 <SECTION>
 <FILE>json-object</FILE>
 <TITLE>JSON Object</TITLE>
@@ -224,7 +226,6 @@ json_generator_get_indent_char
 <SUBSECTION>
 json_generator_to_file
 json_generator_to_data
-json_generator_to_string
 json_generator_to_stream
 
 <SUBSECTION Standard>

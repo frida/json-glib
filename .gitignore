@@ -1,6 +1,5 @@
 ABOUT-NLS
 INSTALL
-README
 Makefile
 Makefile.in
 aclocal.m4
@@ -67,7 +66,6 @@ test-report.html
 /doc/reference/json-glib-decl-list.txt.bak
 /doc/reference/json-glib-decl.txt
 /doc/reference/json-glib-decl.txt.bak
-/doc/reference/json-glib-overrides.txt
 /doc/reference/json-glib-undeclared.txt
 /doc/reference/json-glib-undocumented.txt
 /doc/reference/json-glib-unused.txt
@@ -79,5 +77,3 @@ test-report.html
 omf.make
 xmldocs.make
 *.gcov
-/x86
-/x86_64

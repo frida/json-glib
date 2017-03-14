@@ -102,10 +102,6 @@ void            json_generator_set_root         (JsonGenerator  *generator,
 JSON_AVAILABLE_IN_1_0
 JsonNode *      json_generator_get_root         (JsonGenerator  *generator);
 
-JSON_AVAILABLE_IN_1_4
-GString        *json_generator_to_string        (JsonGenerator  *generator,
-                                                 GString        *string);
-
 JSON_AVAILABLE_IN_1_0
 gchar *         json_generator_to_data          (JsonGenerator  *generator,
                                                  gsize          *length);
