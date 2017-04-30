@@ -2,3 +2,5 @@
 *~
 Makefile
 _build
+/x86
+/x86_64
