@@ -155,5 +155,4 @@ python3 = import('python3').find_python()
 gen_installed_test = files('build-aux/gen-installed-test.py')
 
 subdir('json-glib')
-subdir('po')
 subdir('doc')
