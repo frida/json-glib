@@ -1203,23 +1203,18 @@ json_parser_get_root (JsonParser *parser)
  *
  * Steals the top level node from the parsed JSON stream.
  *
+ * Returns: (transfer full): the top level #JsonNode
+ *
  * Since: 1.4
- * Returns: (transfer full) the top level #JsonNode
  */
 JsonNode *
 json_parser_steal_root (JsonParser *parser)
 {
-  JsonParserPrivate *priv;
-  JsonNode *root;
+  JsonParserPrivate *priv = json_parser_get_instance_private (parser);
 
   g_return_val_if_fail (JSON_IS_PARSER (parser), NULL);
 
-  priv = parser->priv;
-
-  root = priv->root;
-  priv->root = NULL;
-
-  return root;
+  return g_steal_pointer (&priv->root);
 }
 
 /**

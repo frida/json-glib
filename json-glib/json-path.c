@@ -48,7 +48,7 @@
  * path index is separated using either the dot notation or the bracket
  * notation, e.g.:
  *
- * |[
+ * |[<!-- language="plain" -->
  *   // dot notation
  *   $.store.book[0].title
  *
@@ -59,32 +59,32 @@
  * The available operators are:
  *
  * * Root node
- *   The '$' character represents the root node of the JSON tree, and
+ *   The `$` character represents the root node of the JSON tree, and
  *   matches the entire document.
  *
- * * Child nodes can either be matched using '.' or '[]'. For instance,
- *   both `$.store.book` and `$['store']['book'] match the contents of
+ * * Child nodes can either be matched using `.` or `[]`. For instance,
+ *   both `$.store.book` and `$['store']['book']` match the contents of
  *   the book member of the store object.
  *
  * * Child nodes can be reached without specifying the whole tree structure
- *   through the recursive descent operator, or '..'. For instance,
+ *   through the recursive descent operator, or `..`. For instance,
  *   `$..author` matches all author member in every object.
  *
- * * Child nodes can grouped through the wildcard operator, or '*'. For
+ * * Child nodes can grouped through the wildcard operator, or `*`. For
  *   instance, `$.store.book[*].author` matches all author members of any
  *   object element contained in the book array of the store object.
  *
  * * Element nodes can be accessed using their index (starting from zero)
- *   in the subscript operator '[]'. For instance, `$.store.book[0]` matches
+ *   in the subscript operator `[]`. For instance, `$.store.book[0]` matches
  *   the first element of the book array of the store object.
  *
  * * Subsets of element nodes can be accessed using the set notation
- *   operator '[start,end]'. For instance, `$.store.book[0,2]` matches the
- *   first, second, and third elements of the book array of the store
+ *   operator `[i,j,...]`. For instance, `$.store.book[0,2]` matches the
+ *   elements 0 and 2 (the first and third) of the book array of the store
  *   object.
  *
  * * Slices of element nodes can be accessed using the slice notation
- *   operation '[start:end:step]'. If start is omitted, the starting index
+ *   operation `[start:end:step]`. If start is omitted, the starting index
  *   of the slice is implied to be zero; if end is omitted, the ending index
  *   of the slice is implied to be the length of the array; if step is
  *   omitted, the step of the slice is implied to be 1. For instance,
@@ -97,7 +97,8 @@
  * ## Example of JSONPath matches
  * The following example shows some of the results of using #JsonPath
  * on a JSON tree. We use the following JSON description of a bookstore:
- * |[
+ *
+ * |[<!-- language="plain" -->
  *   { "store": {
  *       "book": [
  *         { "category": "reference", "author": "Nigel Rees",
@@ -145,7 +146,7 @@
  *
  * The output will be:
  *
- * |[
+ * |[<!-- language="plain" -->
  *   ["Nigel Rees","Evelyn Waugh","Herman Melville","J. R. R. Tolkien"]
  * ]|
  *
@@ -394,7 +395,7 @@ json_path_compile (JsonPath    *path,
                 g_set_error (error, JSON_PATH_ERROR,
                              JSON_PATH_ERROR_INVALID_QUERY,
                              /* translators: the %c is the invalid character */
-                             _("Root node followed by invalid character '%c'"),
+                             _("Root node followed by invalid character “%c”"),
                              *(p + 1));
                 return FALSE;
               }
@@ -508,7 +509,7 @@ json_path_compile (JsonPath    *path,
                           {
                             g_set_error (error, JSON_PATH_ERROR,
                                          JSON_PATH_ERROR_INVALID_QUERY,
-                                         _("Malformed slice expression '%*s'"),
+                                         _("Malformed slice expression “%*s”"),
                                          (int)(end_p - p),
                                          p + 1);
                             goto fail;
@@ -552,7 +553,7 @@ json_path_compile (JsonPath    *path,
                             g_array_unref (indices);
                             g_set_error (error, JSON_PATH_ERROR,
                                          JSON_PATH_ERROR_INVALID_QUERY,
-                                         _("Invalid set definition '%*s'"),
+                                         _("Invalid set definition “%*s”"),
                                          (int)(end_p - p),
                                          p + 1);
                             goto fail;
@@ -605,7 +606,7 @@ json_path_compile (JsonPath    *path,
                       {
                         g_set_error (error, JSON_PATH_ERROR,
                                      JSON_PATH_ERROR_INVALID_QUERY,
-                                     _("Invalid slice definition '%*s'"),
+                                     _("Invalid slice definition “%*s”"),
                                      (int)(end_p - p),
                                      p + 1);
                         goto fail;
@@ -633,7 +634,7 @@ json_path_compile (JsonPath    *path,
                   {
                     g_set_error (error, JSON_PATH_ERROR,
                                  JSON_PATH_ERROR_INVALID_QUERY,
-                                 _("Invalid array index definition '%*s'"),
+                                 _("Invalid array index definition “%*s”"),
                                  (int)(end_p - p),
                                  p + 1);
                     goto fail;
@@ -652,7 +653,7 @@ json_path_compile (JsonPath    *path,
             {
               g_set_error(error, JSON_PATH_ERROR,
                           JSON_PATH_ERROR_INVALID_QUERY,
-                          _("Invalid first character '%c'"),
+                          _("Invalid first character “%c”"),
                           *p);
               return FALSE;
             }
@@ -754,9 +755,10 @@ walk_path_node (GList      *path,
           case JSON_NODE_OBJECT:
             {
               JsonObject *object = json_node_get_object (root);
-              GList *l;
+              GList *members, *l;
 
-              for (l = object->members_ordered.head; l != NULL; l = l->next)
+              members = json_object_get_members (object);
+              for (l = members; l != NULL; l = l->next)
                 {
                   JsonNode *m = json_object_get_member (object, l->data);
 
@@ -772,6 +774,7 @@ walk_path_node (GList      *path,
                       walk_path_node (path, m, results);
                     }
                 }
+              g_list_free (members);
             }
             break;
 
@@ -812,9 +815,10 @@ walk_path_node (GList      *path,
       if (JSON_NODE_HOLDS_OBJECT (root))
         {
           JsonObject *object = json_node_get_object (root);
-          GList *l;
+          GList *members, *l;
 
-          for (l = object->members_ordered.head; l != NULL; l = l->next)
+          members = json_object_get_members (object);
+          for (l = members; l != NULL; l = l->next)
             {
               JsonNode *member = json_object_get_member (object, l->data);
 
@@ -826,6 +830,7 @@ walk_path_node (GList      *path,
                   json_array_add_element (results, json_node_copy (member));
                 }
             }
+          g_list_free (members);
         }
       else
         json_array_add_element (results, json_node_copy (root));

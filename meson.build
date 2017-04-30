@@ -1,10 +1,10 @@
-project('json-glib', 'c', version: '1.2.7',
+project('json-glib', 'c', version: '1.3.1',
         license: 'LGPLv2.1+',
         default_options: [
           'warning_level=1',
           'buildtype=debugoptimized',
         ],
-        meson_version: '>= 0.37.1')
+        meson_version: '>= 0.38.1')
 
 
 # Versionning
@@ -39,7 +39,7 @@ json_localedir = join_paths(get_option('prefix'), get_option('localedir'))
 json_libexecdir = join_paths(get_option('prefix'), get_option('libexecdir'))
 
 # Dependencies
-glib_req_version = '>= 2.37.6'
+glib_req_version = '>= 2.44.0'
 gobject_dep = dependency('gobject-2.0', version: glib_req_version)
 gio_dep = dependency('gio-2.0', version: glib_req_version)
 
@@ -154,5 +154,5 @@ subdir('json-glib')
 subdir('po')
 
 if get_option('enable-gtk-doc')
-  subdir('doc/reference')
+  subdir('doc')
 endif

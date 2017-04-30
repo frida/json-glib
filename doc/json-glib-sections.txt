@@ -227,7 +227,6 @@ json_generator_get_indent_char
 <SUBSECTION>
 json_generator_to_file
 json_generator_to_data
-json_generator_to_string
 json_generator_to_stream
 
 <SUBSECTION Standard>
@@ -335,6 +334,10 @@ JSON_VERSION_1_2
 JSON_AVAILABLE_IN_1_2
 JSON_DEPRECATED_IN_1_2
 JSON_DEPRECATED_IN_1_2_FOR
+JSON_VERSION_1_4
+JSON_AVAILABLE_IN_1_4
+JSON_DEPRECATED_IN_1_4
+JSON_DEPRECATED_IN_1_4_FOR
 
 <SUBSECTION Private>
 JSON_ENCODE_VERSION

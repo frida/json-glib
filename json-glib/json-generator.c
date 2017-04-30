@@ -60,8 +60,7 @@ enum
   PROP_LAST
 };
 
-static void   dump_value  (JsonGenerator *generator,
-                           GString       *buffer,
+static void   dump_value  (GString       *buffer,
                            gint           level,
                            JsonNode      *node);
 static void   dump_array  (JsonGenerator *generator,
@@ -315,7 +314,7 @@ dump_node (JsonGenerator *generator,
       break;
 
     case JSON_NODE_VALUE:
-      dump_value (generator, buffer, level, node);
+      dump_value (buffer, level, node);
       break;
 
     case JSON_NODE_ARRAY:
@@ -331,10 +330,9 @@ dump_node (JsonGenerator *generator,
 }
 
 static void
-dump_value (JsonGenerator *generator,
-            GString       *buffer,
-            gint           level,
-            JsonNode      *node)
+dump_value (GString  *buffer,
+            gint      level,
+            JsonNode *node)
 {
   const JsonValue *value;
 
@@ -428,7 +426,7 @@ dump_object (JsonGenerator *generator,
              JsonObject    *object)
 {
   JsonGeneratorPrivate *priv = generator->priv;
-  GList *l;
+  GList *members, *l;
   gboolean pretty = priv->pretty;
   guint indent = priv->indent;
   guint i;
@@ -438,7 +436,9 @@ dump_object (JsonGenerator *generator,
   if (pretty)
     g_string_append_c (buffer, '\n');
 
-  for (l = object->members_ordered.head; l != NULL; l = l->next)
+  members = json_object_get_members (object);
+
+  for (l = members; l != NULL; l = l->next)
     {
       const gchar *member_name = l->data;
       JsonNode *cur = json_object_get_member (object, member_name);
@@ -451,6 +451,8 @@ dump_object (JsonGenerator *generator,
       if (pretty)
         g_string_append_c (buffer, '\n');
     }
+
+  g_list_free (members);
 
   if (pretty)
     {
@@ -477,41 +479,6 @@ json_generator_new (void)
 }
 
 /**
- * json_generator_to_string: (skip)
- * @generator: a #JsonGenerator
- * @string: (allow-none): a #GString, or %NULL
- *
- * Generates a JSON data stream from @generator
- * and appends it to @string.
- *
- * If @string is %NULL then a new empty #GString
- * is allocated and used.
- *
- * Return value: a #GString holding a JSON data stream.
- *   Use g_string_free() to free the allocated resources.
- *
- * Since: 1.4
- */
-GString *
-json_generator_to_string (JsonGenerator *generator,
-                          GString       *string)
-{
-  JsonNode *root;
-
-  g_return_val_if_fail (JSON_IS_GENERATOR (generator), NULL);
-
-  if (string == NULL)
-    string = g_string_new ("");
-
-  root = generator->priv->root;
-  if (!root)
-    return string;
-
-  dump_node (generator, string, 0, NULL, root);
-  return string;
-}
-
-/**
  * json_generator_to_data:
  * @generator: a #JsonGenerator
  * @length: (out): return location for the length of the returned
@@ -527,12 +494,22 @@ gchar *
 json_generator_to_data (JsonGenerator *generator,
                         gsize         *length)
 {
+  JsonNode *root;
   GString *string;
 
   g_return_val_if_fail (JSON_IS_GENERATOR (generator), NULL);
 
+  root = generator->priv->root;
+  if (!root)
+    {
+      if (length)
+        *length = 0;
+
+      return NULL;
+    }
+
   string = g_string_new ("");
-  json_generator_to_string (generator, string);
+  dump_node (generator, string, 0, NULL, root);
 
   if (length)
     *length = string->len;
@@ -646,8 +623,8 @@ json_generator_set_root (JsonGenerator *generator,
  * Retrieves a pointer to the root #JsonNode set using
  * json_generator_set_root().
  *
- * Return value: (transfer none): a #JsonNode, or %NULL. The returned node
- *   is owned by the #JsonGenerator and it should not be freed
+ * Return value: (nullable) (transfer none): a #JsonNode, or %NULL. The returned
+ * node is owned by the #JsonGenerator and it should not be freed
  *
  * Since: 0.14
  */
