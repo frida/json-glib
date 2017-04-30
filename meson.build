@@ -40,8 +40,8 @@ json_libexecdir = join_paths(get_option('prefix'), get_option('libexecdir'))
 
 # Dependencies
 glib_req_version = '>= 2.44.0'
-gobject_dep = dependency('gobject-2.0', version: glib_req_version)
-gio_dep = dependency('gio-2.0', version: glib_req_version)
+gobject_dep = dependency('gobject-2.0', version: glib_req_version, static: true)
+gio_dep = dependency('gio-2.0', version: glib_req_version, static: true)
 
 # Configurations
 cc = meson.get_compiler('c')
@@ -150,8 +150,6 @@ gir = find_program('g-ir-scanner', required: false)
 build_gir = gir.found() and not meson.is_cross_build() and not get_option('disable_introspection')
 
 subdir('json-glib')
-
-subdir('po')
 
 if get_option('enable-gtk-doc')
   subdir('doc')
