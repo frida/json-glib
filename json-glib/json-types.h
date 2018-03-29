@@ -358,17 +358,33 @@ JSON_AVAILABLE_IN_1_0
 JsonNode *            json_object_dup_member         (JsonObject  *object,
                                                       const gchar *member_name);
 JSON_AVAILABLE_IN_1_0
-gint64                json_object_get_int_member     (JsonObject  *object,
-                                                      const gchar *member_name);
+gint64                json_object_get_int_member                        (JsonObject  *object,
+                                                                         const gchar *member_name);
+JSON_AVAILABLE_IN_1_6
+gint64                json_object_get_int_member_with_default           (JsonObject  *object,
+                                                                         const char  *member_name,
+                                                                        gint64       default_value);
 JSON_AVAILABLE_IN_1_0
-gdouble               json_object_get_double_member  (JsonObject  *object,
-                                                      const gchar *member_name);
+gdouble               json_object_get_double_member                     (JsonObject  *object,
+                                                                         const gchar *member_name);
+JSON_AVAILABLE_IN_1_6
+double                json_object_get_double_member_with_default        (JsonObject  *object,
+                                                                         const char  *member_name,
+                                                                         double       default_value);
 JSON_AVAILABLE_IN_1_0
-gboolean              json_object_get_boolean_member (JsonObject  *object,
-                                                      const gchar *member_name);
+gboolean              json_object_get_boolean_member                    (JsonObject  *object,
+                                                                         const gchar *member_name);
+JSON_AVAILABLE_IN_1_6
+gboolean              json_object_get_boolean_member_with_default       (JsonObject  *object,
+                                                                         const char  *member_name,
+                                                                         gboolean     default_value);
 JSON_AVAILABLE_IN_1_0
-const gchar *         json_object_get_string_member  (JsonObject  *object,
-                                                      const gchar *member_name);
+const gchar *         json_object_get_string_member                     (JsonObject  *object,
+                                                                         const gchar *member_name);
+JSON_AVAILABLE_IN_1_6
+const char *          json_object_get_string_member_with_default        (JsonObject  *object,
+                                                                         const char  *member_name,
+                                                                         const char  *default_value);
 JSON_AVAILABLE_IN_1_0
 gboolean              json_object_get_null_member    (JsonObject  *object,
                                                       const gchar *member_name);
@@ -517,7 +533,7 @@ gboolean              json_array_equal               (gconstpointer a,
 #ifdef G_DEFINE_AUTOPTR_CLEANUP_FUNC
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (JsonArray, json_array_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (JsonObject, json_object_unref)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (JsonNode, json_node_free)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (JsonNode, json_node_unref)
 #endif
 
 G_END_DECLS

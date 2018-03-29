@@ -398,8 +398,9 @@ json_node_new (JsonNodeType type)
  * json_node_copy:
  * @node: a #JsonNode
  *
- * Copies @node. If the node contains complex data types, those will also
- * be copied.
+ * Copies @node. If the node contains complex data types, their reference
+ * counts are increased, regardless of whether the node is mutable or
+ * immutable.
  *
  * The copy will be immutable if, and only if, @node is immutable. However,
  * there should be no need to copy an immutable node.
@@ -429,11 +430,11 @@ json_node_copy (JsonNode *node)
   switch (copy->type)
     {
     case JSON_NODE_OBJECT:
-      copy->data.object = json_object_copy (node->data.object, copy);
+      copy->data.object = json_node_dup_object (node);
       break;
 
     case JSON_NODE_ARRAY:
-      copy->data.array = json_array_copy (node->data.array, copy);
+      copy->data.array = json_node_dup_array (node);
       break;
 
     case JSON_NODE_VALUE:
@@ -501,7 +502,8 @@ json_node_unref (JsonNode *node)
  *
  * If @object is %NULL, the node’s existing object is cleared.
  *
- * It is an error to call this on an immutable node.
+ * It is an error to call this on an immutable node, or on a node which is not
+ * an object node.
  */
 void
 json_node_set_object (JsonNode   *node,
@@ -527,7 +529,8 @@ json_node_set_object (JsonNode   *node,
  *
  * Sets @object inside @node. The reference count of @object is not increased.
  *
- * It is an error to call this on an immutable node.
+ * It is an error to call this on an immutable node, or on a node which is not
+ * an object node.
  */
 void
 json_node_take_object (JsonNode   *node,
@@ -551,8 +554,9 @@ json_node_take_object (JsonNode   *node,
  * json_node_get_object:
  * @node: a #JsonNode
  *
- * Retrieves the #JsonObject stored inside a #JsonNode. If the node does not
- * hold an object value, %NULL is returned.
+ * Retrieves the #JsonObject stored inside a #JsonNode. It is a programmer error
+ * to call this on a node which doesn’t hold an object value. Use
+ * %JSON_NODE_HOLDS_OBJECT first.
  *
  * Return value: (transfer none) (nullable): the #JsonObject
  */
@@ -570,8 +574,9 @@ json_node_get_object (JsonNode *node)
  * @node: a #JsonNode
  *
  * Retrieves the #JsonObject inside @node. The reference count of
- * the returned object is increased. If the node does not hold an object value,
- * %NULL is returned.
+ * the returned object is increased. It is a programmer error
+ * to call this on a node which doesn’t hold an object value. Use
+ * %JSON_NODE_HOLDS_OBJECT first.
  *
  * Return value: (transfer full) (nullable): the #JsonObject
  */
@@ -594,7 +599,8 @@ json_node_dup_object (JsonNode *node)
  *
  * Sets @array inside @node and increases the #JsonArray reference count.
  *
- * It is an error to call this on an immutable node.
+ * It is an error to call this on an immutable node, or on a node which is not
+ * an array node.
  */
 void
 json_node_set_array (JsonNode  *node,
@@ -620,7 +626,8 @@ json_node_set_array (JsonNode  *node,
  *
  * Sets @array into @node without increasing the #JsonArray reference count.
  *
- * It is an error to call this on an immutable node.
+ * It is an error to call this on an immutable node, or a node which is not
+ * an array node.
  */
 void
 json_node_take_array (JsonNode  *node,
@@ -644,8 +651,9 @@ json_node_take_array (JsonNode  *node,
  * json_node_get_array:
  * @node: a #JsonNode
  *
- * Retrieves the #JsonArray stored inside a #JsonNode. If the node does not
- * hold an array value, %NULL is returned.
+ * Retrieves the #JsonArray stored inside a #JsonNode. It is a programmer error
+ * to call this on a node which doesn’t hold an array value. Use
+ * %JSON_NODE_HOLDS_ARRAY first.
  *
  * Return value: (transfer none) (nullable): the #JsonArray
  */
@@ -663,8 +671,9 @@ json_node_get_array (JsonNode *node)
  * @node: a #JsonNode
  *
  * Retrieves the #JsonArray stored inside a #JsonNode and returns it
- * with its reference count increased by one. If the node does not hold an
- * array value, %NULL is returned.
+ * with its reference count increased by one. It is a programmer error
+ * to call this on a node which doesn’t hold an array value. Use
+ * %JSON_NODE_HOLDS_ARRAY first.
  *
  * Return value: (transfer full) (nullable): the #JsonArray with its reference
  *   count increased.
@@ -687,8 +696,9 @@ json_node_dup_array (JsonNode *node)
  * @value: (out caller-allocates): return location for an uninitialized value
  *
  * Retrieves a value from a #JsonNode and copies into @value. When done
- * using it, call g_value_unset() on the #GValue. If the node does not hold a
- * scalar value, @value is not modified.
+ * using it, call g_value_unset() on the #GValue. It is a programmer error
+ * to call this on a node which doesn’t hold a scalar value. Use
+ * %JSON_NODE_HOLDS_VALUE first.
  */
 void
 json_node_get_value (JsonNode *node,
@@ -731,7 +741,8 @@ json_node_get_value (JsonNode *node,
  *
  * Sets @value inside @node. The passed #GValue is copied into the #JsonNode.
  *
- * It is an error to call this on an immutable node.
+ * It is an error to call this on an immutable node, or on a node which is not
+ * a value node.
  */
 void
 json_node_set_value (JsonNode     *node,
@@ -971,7 +982,8 @@ json_node_get_parent (JsonNode *node)
  * Sets @value as the string content of the @node, replacing any existing
  * content.
  *
- * It is an error to call this on an immutable node.
+ * It is an error to call this on an immutable node, or on a node which is not
+ * a value node.
  */
 void
 json_node_set_string (JsonNode    *node,
@@ -1039,7 +1051,8 @@ json_node_dup_string (JsonNode *node)
  * Sets @value as the integer content of the @node, replacing any existing
  * content.
  *
- * It is an error to call this on an immutable node.
+ * It is an error to call this on an immutable node, or on a node which is not
+ * a value node.
  */
 void
 json_node_set_int (JsonNode *node,
@@ -1097,7 +1110,8 @@ json_node_get_int (JsonNode *node)
  * Sets @value as the double content of the @node, replacing any existing
  * content.
  *
- * It is an error to call this on an immutable node.
+ * It is an error to call this on an immutable node, or on a node which is not
+ * a value node.
  */
 void
 json_node_set_double (JsonNode *node,
@@ -1155,7 +1169,8 @@ json_node_get_double (JsonNode *node)
  * Sets @value as the boolean content of the @node, replacing any existing
  * content.
  *
- * It is an error to call this on an immutable node.
+ * It is an error to call this on an immutable node, or on a node which is not
+ * a value node.
  */
 void
 json_node_set_boolean (JsonNode *node,

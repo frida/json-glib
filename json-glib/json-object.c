@@ -67,40 +67,9 @@ json_object_new (void)
   object->members = g_hash_table_new_full (g_str_hash, g_str_equal,
                                            g_free,
                                            (GDestroyNotify) json_node_unref);
-  object->members_ordered = NULL;
+  g_queue_init (&object->members_ordered);
 
   return object;
-}
-
-JsonObject *
-json_object_copy (JsonObject *object,
-                  JsonNode   *new_parent)
-{
-  JsonObject *copy;
-  GList *cur;
-
-  copy = json_object_new ();
-
-  for (cur = object->members_ordered; cur; cur = cur->next)
-    {
-      gchar *name;
-      JsonNode *child_copy;
-
-      name = g_strdup (cur->data);
-
-      child_copy = json_node_copy (g_hash_table_lookup (object->members, name));
-      child_copy->parent = new_parent;
-
-      g_hash_table_insert (copy->members, name, child_copy);
-      copy->members_ordered = g_list_prepend (copy->members_ordered, name);
-    }
-
-  copy->members_ordered = g_list_reverse (copy->members_ordered);
-
-  copy->immutable_hash = object->immutable_hash;
-  copy->immutable = object->immutable;
-
-  return copy;
 }
 
 /**
@@ -139,9 +108,8 @@ json_object_unref (JsonObject *object)
 
   if (--object->ref_count == 0)
     {
-      g_list_free (object->members_ordered);
+      g_queue_clear (&object->members_ordered);
       g_hash_table_destroy (object->members);
-      object->members_ordered = NULL;
       object->members = NULL;
 
       g_slice_free (JsonObject, object);
@@ -208,7 +176,7 @@ object_set_member_internal (JsonObject  *object,
   gchar *name = g_strdup (member_name);
 
   if (g_hash_table_lookup (object->members, name) == NULL)
-    object->members_ordered = g_list_prepend (object->members_ordered, name);
+    g_queue_push_tail (&object->members_ordered, name);
   else
     {
       GList *l;
@@ -217,7 +185,7 @@ object_set_member_internal (JsonObject  *object,
        * pointer to its name, to avoid keeping invalid pointers
        * once we replace the key in the hash table
        */
-      l = g_list_find_custom (object->members_ordered, name, (GCompareFunc) strcmp);
+      l = g_queue_find_custom (&object->members_ordered, name, (GCompareFunc) strcmp);
       if (l != NULL)
         l->data = name;
     }
@@ -514,13 +482,18 @@ json_object_set_object_member (JsonObject  *object,
 GList *
 json_object_get_members (JsonObject *object)
 {
-  GList *copy;
-
   g_return_val_if_fail (object != NULL, NULL);
 
-  copy = g_list_copy (object->members_ordered);
+  return g_list_copy (object->members_ordered.head);
+}
 
-  return g_list_reverse (copy);
+
+GQueue *
+json_object_get_members_internal (JsonObject *object)
+{
+  g_return_val_if_fail (object != NULL, NULL);
+
+  return &object->members_ordered;
 }
 
 /**
@@ -543,7 +516,7 @@ json_object_get_values (JsonObject *object)
   g_return_val_if_fail (object != NULL, NULL);
 
   values = NULL;
-  for (l = object->members_ordered; l != NULL; l = l->next)
+  for (l = object->members_ordered.tail; l != NULL; l = l->prev)
     values = g_list_prepend (values, g_hash_table_lookup (object->members, l->data));
 
   return values;
@@ -594,7 +567,7 @@ object_get_member_internal (JsonObject  *object,
  * a #JsonObject.
  *
  * Return value: (transfer none) (nullable): a pointer to the node for the
- *   requested object member, or %NULL
+ *   requested object member, or %NULL if it does not exist.
  */
 JsonNode *
 json_object_get_member (JsonObject  *object,
@@ -606,35 +579,82 @@ json_object_get_member (JsonObject  *object,
   return object_get_member_internal (object, member_name);
 }
 
+#define JSON_OBJECT_GET(ret_type,type_name) \
+ret_type \
+json_object_get_ ##type_name## _member (JsonObject *object, \
+                                        const char *member_name) \
+{ \
+  g_return_val_if_fail (object != NULL, (ret_type) 0); \
+  g_return_val_if_fail (member_name != NULL, (ret_type) 0); \
+\
+  JsonNode *node = object_get_member_internal (object, member_name); \
+  g_return_val_if_fail (node != NULL, (ret_type) 0); \
+\
+  if (JSON_NODE_HOLDS_NULL (node)) \
+    return (ret_type) 0; \
+\
+  g_return_val_if_fail (JSON_NODE_TYPE (node) == JSON_NODE_VALUE, (ret_type) 0); \
+\
+  return json_node_get_ ##type_name (node); \
+}
+
+#define JSON_OBJECT_GET_DEFAULT(ret_type,type_name) \
+ret_type \
+json_object_get_ ##type_name## _member_with_default (JsonObject *object, \
+                                                     const char *member_name, \
+                                                     ret_type    default_value) \
+{ \
+  g_return_val_if_fail (object != NULL, default_value); \
+  g_return_val_if_fail (member_name != NULL, default_value); \
+\
+  JsonNode *node = object_get_member_internal (object, member_name); \
+  if (node == NULL) \
+    return default_value; \
+\
+  if (JSON_NODE_HOLDS_NULL (node)) \
+    return default_value; \
+\
+  g_return_val_if_fail (JSON_NODE_TYPE (node) == JSON_NODE_VALUE, default_value); \
+\
+  return json_node_get_ ##type_name (node); \
+}
+
 /**
  * json_object_get_int_member:
  * @object: a #JsonObject
- * @member_name: the name of the member
+ * @member_name: the name of the @object member
  *
  * Convenience function that retrieves the integer value
- * stored in @member_name of @object
+ * stored in @member_name of @object. It is an error to specify a
+ * @member_name which does not exist.
  *
- * See also: json_object_get_member()
+ * See also: json_object_get_int_member_with_default(),
+ * json_object_get_member() and json_object_has_member()
  *
  * Return value: the integer value of the object's member
  *
  * Since: 0.8
  */
-gint64
-json_object_get_int_member (JsonObject  *object,
-                            const gchar *member_name)
-{
-  JsonNode *node;
+JSON_OBJECT_GET (gint64, int)
 
-  g_return_val_if_fail (object != NULL, 0);
-  g_return_val_if_fail (member_name != NULL, 0);
-
-  node = object_get_member_internal (object, member_name);
-  g_return_val_if_fail (node != NULL, 0);
-  g_return_val_if_fail (JSON_NODE_TYPE (node) == JSON_NODE_VALUE, 0);
-
-  return json_node_get_int (node);
-}
+/**
+ * json_object_get_int_member_with_default:
+ * @object: a #JsonObject
+ * @member_name: the name of the @object member
+ * @default_value: the value to return if @member_name is not valid
+ *
+ * Convenience function that retrieves the integer value
+ * stored in @member_name of @object.
+ *
+ * If @member_name does not exist, does not contain a scalar value,
+ * or contains `null`, then @default_value is returned instead.
+ *
+ * Returns: the integer value of the object's member, or the
+ *   given default
+ *
+ * Since: 1.6
+ */
+JSON_OBJECT_GET_DEFAULT (gint64, int)
 
 /**
  * json_object_get_double_member:
@@ -642,29 +662,36 @@ json_object_get_int_member (JsonObject  *object,
  * @member_name: the name of the member
  *
  * Convenience function that retrieves the floating point value
- * stored in @member_name of @object
+ * stored in @member_name of @object. It is an error to specify a
+ * @member_name which does not exist.
  *
- * See also: json_object_get_member()
+ * See also: json_object_get_double_member_with_default(),
+ * json_object_get_member() and json_object_has_member()
  *
  * Return value: the floating point value of the object's member
  *
  * Since: 0.8
  */
-gdouble
-json_object_get_double_member (JsonObject  *object,
-                               const gchar *member_name)
-{
-  JsonNode *node;
+JSON_OBJECT_GET (gdouble, double)
 
-  g_return_val_if_fail (object != NULL, 0.0);
-  g_return_val_if_fail (member_name != NULL, 0.0);
-
-  node = object_get_member_internal (object, member_name);
-  g_return_val_if_fail (node != NULL, 0.0);
-  g_return_val_if_fail (JSON_NODE_TYPE (node) == JSON_NODE_VALUE, 0.0);
-
-  return json_node_get_double (node);
-}
+/**
+ * json_object_get_double_member_with_default:
+ * @object: a #JsonObject
+ * @member_name: the name of the @object member
+ * @default_value: the value to return if @member_name is not valid
+ *
+ * Convenience function that retrieves the floating point value
+ * stored in @member_name of @object.
+ *
+ * If @member_name does not exist, does not contain a scalar value,
+ * or contains `null`, then @default_value is returned instead.
+ *
+ * Returns: the floating point value of the object's member, or the
+ *   given default
+ *
+ * Since: 1.6
+ */
+JSON_OBJECT_GET_DEFAULT (double, double)
 
 /**
  * json_object_get_boolean_member:
@@ -672,29 +699,73 @@ json_object_get_double_member (JsonObject  *object,
  * @member_name: the name of the member
  *
  * Convenience function that retrieves the boolean value
- * stored in @member_name of @object
+ * stored in @member_name of @object. It is an error to specify a
+ * @member_name which does not exist.
  *
- * See also: json_object_get_member()
+ * See also: json_object_get_boolean_member_with_default(),
+ * json_object_get_member() and json_object_has_member()
  *
  * Return value: the boolean value of the object's member
  *
  * Since: 0.8
  */
-gboolean
-json_object_get_boolean_member (JsonObject  *object,
-                                const gchar *member_name)
-{
-  JsonNode *node;
+JSON_OBJECT_GET (gboolean, boolean)
 
-  g_return_val_if_fail (object != NULL, FALSE);
-  g_return_val_if_fail (member_name != NULL, FALSE);
+/**
+ * json_object_get_boolean_member_with_default:
+ * @object: a #JsonObject
+ * @member_name: the name of the @object member
+ * @default_value: the value to return if @member_name is not valid
+ *
+ * Convenience function that retrieves the boolean value
+ * stored in @member_name of @object.
+ *
+ * If @member_name does not exist, does not contain a scalar value,
+ * or contains `null`, then @default_value is returned instead.
+ *
+ * Returns: the boolean value of the object's member, or the
+ *   given default
+ *
+ * Since: 1.6
+ */
+JSON_OBJECT_GET_DEFAULT (gboolean, boolean)
 
-  node = object_get_member_internal (object, member_name);
-  g_return_val_if_fail (node != NULL, FALSE);
-  g_return_val_if_fail (JSON_NODE_TYPE (node) == JSON_NODE_VALUE, FALSE);
+/**
+ * json_object_get_string_member:
+ * @object: a #JsonObject
+ * @member_name: the name of the member
+ *
+ * Convenience function that retrieves the string value
+ * stored in @member_name of @object. It is an error to specify a
+ * @member_name that does not exist.
+ *
+ * See also: json_object_get_string_member_with_default(),
+ * json_object_get_member() and json_object_has_member()
+ *
+ * Return value: the string value of the object's member
+ *
+ * Since: 0.8
+ */
+JSON_OBJECT_GET (const gchar *, string)
 
-  return json_node_get_boolean (node);
-}
+/**
+ * json_object_get_string_member_with_default:
+ * @object: a #JsonObject
+ * @member_name: the name of the @object member
+ * @default_value: the value to return if @member_name is not valid
+ *
+ * Convenience function that retrieves the string value
+ * stored in @member_name of @object.
+ *
+ * If @member_name does not exist, does not contain a scalar value,
+ * or contains `null`, then @default_value is returned instead.
+ *
+ * Returns: the string value of the object's member, or the
+ *   given default
+ *
+ * Since: 1.6
+ */
+JSON_OBJECT_GET_DEFAULT (const char *, string)
 
 /**
  * json_object_get_null_member:
@@ -702,9 +773,10 @@ json_object_get_boolean_member (JsonObject  *object,
  * @member_name: the name of the member
  *
  * Convenience function that checks whether the value
- * stored in @member_name of @object is null
+ * stored in @member_name of @object is null. It is an error to
+ * specify a @member_name which does not exist.
  *
- * See also: json_object_get_member()
+ * See also: json_object_get_member() and json_object_has_member()
  *
  * Return value: %TRUE if the value is null
  *
@@ -735,47 +807,15 @@ json_object_get_null_member (JsonObject  *object,
 }
 
 /**
- * json_object_get_string_member:
- * @object: a #JsonObject
- * @member_name: the name of the member
- *
- * Convenience function that retrieves the string value
- * stored in @member_name of @object
- *
- * See also: json_object_get_member()
- *
- * Return value: the string value of the object's member
- *
- * Since: 0.8
- */
-const gchar *
-json_object_get_string_member (JsonObject  *object,
-                               const gchar *member_name)
-{
-  JsonNode *node;
-
-  g_return_val_if_fail (object != NULL, NULL);
-  g_return_val_if_fail (member_name != NULL, NULL);
-
-  node = object_get_member_internal (object, member_name);
-  g_return_val_if_fail (node != NULL, NULL);
-  g_return_val_if_fail (JSON_NODE_HOLDS_VALUE (node) || JSON_NODE_HOLDS_NULL (node), NULL);
-
-  if (JSON_NODE_HOLDS_NULL (node))
-    return NULL;
-
-  return json_node_get_string (node);
-}
-
-/**
  * json_object_get_array_member:
  * @object: a #JsonObject
  * @member_name: the name of the member
  *
  * Convenience function that retrieves the array
- * stored in @member_name of @object
+ * stored in @member_name of @object. It is an error to specify a
+ * @member_name which does not exist.
  *
- * See also: json_object_get_member()
+ * See also: json_object_get_member() and json_object_has_member()
  *
  * Return value: (transfer none): the array inside the object's member
  *
@@ -809,7 +849,7 @@ json_object_get_array_member (JsonObject  *object,
  * stored in @member_name of @object. It is an error to specify a @member_name
  * which does not exist.
  *
- * See also: json_object_get_member()
+ * See also: json_object_get_member() and json_object_has_member()
  *
  * Return value: (transfer none) (nullable): the object inside the object’s
  *    member, or %NULL if the value for the member is `null`
@@ -886,13 +926,13 @@ json_object_remove_member (JsonObject  *object,
   g_return_if_fail (object != NULL);
   g_return_if_fail (member_name != NULL);
 
-  for (l = object->members_ordered; l != NULL; l = l->next)
+  for (l = object->members_ordered.head; l != NULL; l = l->next)
     {
       const gchar *name = l->data;
 
       if (g_strcmp0 (name, member_name) == 0)
         {
-          object->members_ordered = g_list_delete_link (object->members_ordered, l);
+          g_queue_delete_link (&object->members_ordered, l);
           break;
         }
     }
@@ -920,14 +960,12 @@ json_object_foreach_member (JsonObject        *object,
                             JsonObjectForeach  func,
                             gpointer           data)
 {
-  GList *members, *l;
+  GList *l;
 
   g_return_if_fail (object != NULL);
   g_return_if_fail (func != NULL);
 
-  /* the list is stored in reverse order to have constant time additions */
-  members = g_list_last (object->members_ordered);
-  for (l = members; l != NULL; l = l->prev)
+  for (l = object->members_ordered.head; l != NULL; l = l->next)
     {
       const gchar *member_name = l->data;
       JsonNode *member_node = g_hash_table_lookup (object->members, member_name);

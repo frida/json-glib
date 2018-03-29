@@ -1,0 +1,37 @@
+image: fedora:27
+
+stages:
+  - build
+
+before_script:
+  - dnf install -y gcc gettext glib2-devel gobject-introspection-devel gtk-doc meson ninja-build redhat-rpm-config
+
+build-json-glib:
+  stage: build
+  script:
+    - meson --prefix /usr -Dman=true _build .
+    - cd _build
+    - ninja
+    - meson test
+  except:
+    - tags
+  artifacts:
+    when: on_failure
+    name: "json-glib-${CI_COMMIT_REF_NAME}"
+    paths:
+      - "${CI_PROJECT_DIR}/_build/meson-logs"
+
+dist-json-glib:
+  stage: build
+  only:
+    - tags
+  script:
+    - meson --prefix /usr --buildtype release -Dman=true -Ddocs=true _build .
+    - cd _build
+    - ninja dist
+    - ninja json-glib-doc
+    - tar -c -f "json-glib-docs-${CI_COMMIT_TAG}.tar.xz" -C docs html
+  artifacts:
+    paths:
+      - "${CI_PROJECT_DIR}/_build/json-glib-docs-${CI_COMMIT_TAG}.tar.xz"
+      - "${CI_PROJECT_DIR}/_build/meson-dist/json-glib-*.tar.xz"

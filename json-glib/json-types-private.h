@@ -102,8 +102,7 @@ struct _JsonObject
 {
   GHashTable *members;
 
-  /* the members of the object, ordered in reverse */
-  GList *members_ordered;
+  GQueue members_ordered;
 
   guint immutable_hash;  /* valid iff immutable */
   volatile gint ref_count;
@@ -123,6 +122,9 @@ G_GNUC_INTERNAL
 const gchar *   json_node_type_get_name         (JsonNodeType     node_type);
 G_GNUC_INTERNAL
 const gchar *   json_value_type_get_name        (JsonValueType    value_type);
+
+G_GNUC_INTERNAL
+GQueue *        json_object_get_members_internal (JsonObject     *object);
 
 G_GNUC_INTERNAL
 GType           json_value_type                 (const JsonValue *value);
@@ -166,14 +168,6 @@ void            json_value_seal                 (JsonValue       *value);
 
 G_GNUC_INTERNAL
 guint           json_value_hash                 (gconstpointer    key);
-
-G_GNUC_INTERNAL
-JsonArray *     json_array_copy                 (JsonArray       *array,
-                                                 JsonNode        *new_parent);
-
-G_GNUC_INTERNAL
-JsonObject *    json_object_copy                (JsonObject      *object,
-                                                 JsonNode        *new_parent);
 
 G_END_DECLS
 
