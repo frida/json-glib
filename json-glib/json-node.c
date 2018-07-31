@@ -398,8 +398,9 @@ json_node_new (JsonNodeType type)
  * json_node_copy:
  * @node: a #JsonNode
  *
- * Copies @node. If the node contains complex data types, those will also
- * be copied.
+ * Copies @node. If the node contains complex data types, their reference
+ * counts are increased, regardless of whether the node is mutable or
+ * immutable.
  *
  * The copy will be immutable if, and only if, @node is immutable. However,
  * there should be no need to copy an immutable node.
@@ -429,11 +430,11 @@ json_node_copy (JsonNode *node)
   switch (copy->type)
     {
     case JSON_NODE_OBJECT:
-      copy->data.object = json_object_copy (node->data.object, copy);
+      copy->data.object = json_node_dup_object (node);
       break;
 
     case JSON_NODE_ARRAY:
-      copy->data.array = json_array_copy (node->data.array, copy);
+      copy->data.array = json_node_dup_array (node);
       break;
 
     case JSON_NODE_VALUE:
