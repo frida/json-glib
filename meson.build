@@ -155,5 +155,7 @@ python3 = import('python').find_installation()
 gen_installed_test = files('build-aux/gen-installed-test.py')
 
 subdir('json-glib')
-subdir('po')
+if find_program('xgettext', required : false).found()
+  subdir('po')
+endif
 subdir('doc')
