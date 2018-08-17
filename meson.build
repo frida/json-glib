@@ -54,6 +54,12 @@ endforeach
 
 cdata.set_quoted('GETTEXT_PACKAGE', json_gettext_domain)
 
+buildtype = get_option('buildtype')
+if buildtype == 'release' or buildtype == 'minsize'
+  add_project_arguments(['-DG_DISABLE_CAST_CHECKS', '-DG_DISABLE_ASSERT', '-DG_DISABLE_CHECKS'],
+                        language: 'c')
+endif
+
 if cc.get_id() == 'msvc'
   # Compiler options taken from msvc_recommended_pragmas.h
   # in GLib, based on _Win32_Programming_ by Rector and Newcomer
