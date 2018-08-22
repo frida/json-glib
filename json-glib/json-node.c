@@ -1392,7 +1392,11 @@ json_node_hash (gconstpointer key)
     case JSON_NODE_OBJECT:
       return object_hash ^ json_object_hash (json_node_get_object (node));
     default:
+#ifdef G_DISABLE_CHECKS
+      g_abort ();
+#else
       g_assert_not_reached ();
+#endif
     }
 }
 
@@ -1498,6 +1502,10 @@ json_node_equal (gconstpointer  a,
     }
     case JSON_VALUE_INVALID:
     default:
+#ifdef G_DISABLE_CHECKS
+      g_abort ();
+#else
       g_assert_not_reached ();
+#endif
     }
 }
