@@ -77,6 +77,11 @@ json_serializable_serialize_property (JsonSerializable *serializable,
  * Asks a #JsonSerializable implementation to deserialize the
  * property contained inside @property_node into @value.
  *
+ * The @value can be:
+ * - an empty #GValue initialized by %G_VALUE_INIT, which will be automatically
+ *   initialized with the expected type of the property (since JSON-GLib 1.6)
+ * - a #GValue initialized with the expected type of the property
+ *
  * Return value: %TRUE if the property was successfully deserialized.
  */
 gboolean
@@ -111,6 +116,10 @@ json_serializable_real_deserialize (JsonSerializable *serializable,
                                     JsonNode         *node)
 {
   JSON_NOTE (GOBJECT, "Default deserialization for property '%s'", pspec->name);
+
+  if (!G_IS_VALUE (value))
+    g_value_init (value, G_PARAM_SPEC_VALUE_TYPE (pspec));
+
   return json_deserialize_pspec (value, pspec, node);
 }
 
@@ -199,8 +208,8 @@ G_DEFINE_INTERFACE (JsonSerializable, json_serializable, G_TYPE_OBJECT);
  *                                     pspec);
  * ]|
  *
- * Return value: (transfer full): a #JsonNode containing the serialized
- *   property
+ * Return value: (transfer full) (nullable): a #JsonNode containing the
+ *   serialized property, or %NULL if it should be omitted.
  *
  * Since: 0.10
  */

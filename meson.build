@@ -5,7 +5,7 @@ project('json-glib', 'c', version: '1.5.1',
           'buildtype=debugoptimized',
           'c_std=c99',
         ],
-        meson_version: '>= 0.44.0')
+        meson_version: '>= 0.47.0')
 
 # Versioning
 json_version = meson.project_version()
@@ -34,8 +34,8 @@ json_libexecdir = join_paths(get_option('prefix'), get_option('libexecdir'))
 
 # Dependencies
 glib_req_version = '>= 2.44.0'
-gobject_dep = dependency('gobject-2.0', version: glib_req_version)
-gio_dep = dependency('gio-2.0', version: glib_req_version)
+gio_dep = dependency('gio-2.0', version: glib_req_version,
+  fallback: ['glib', 'libgio_dep'])
 
 # Configurations
 cc = meson.get_compiler('c')
@@ -53,12 +53,6 @@ foreach h: check_headers
 endforeach
 
 cdata.set_quoted('GETTEXT_PACKAGE', json_gettext_domain)
-
-buildtype = get_option('buildtype')
-if buildtype == 'release' or buildtype == 'minsize'
-  add_project_arguments(['-DG_DISABLE_CAST_CHECKS', '-DG_DISABLE_ASSERT', '-DG_DISABLE_CHECKS'],
-                        language: 'c')
-endif
 
 if cc.get_id() == 'msvc'
   # Compiler options taken from msvc_recommended_pragmas.h
@@ -80,7 +74,7 @@ if cc.get_id() == 'msvc'
     '-we4049', # terminating line number emission
     '-we4053', # an expression of type void was used as an operand
     '-we4071', # no function prototype given
-    '-we4819', # the file contains a character that cannot be represented in the current code page
+    '/utf-8',  # Set the input and exec encoding to utf-8
   ]
 elif cc.get_id() == 'gcc' or cc.get_id() == 'clang'
   test_cflags = [
@@ -138,11 +132,11 @@ common_cflags = cc.get_supported_arguments(test_cflags)
 
 common_ldflags = []
 if host_system == 'linux'
-  foreach ldflag: [ '-Wl,-Bsymbolic', '-Wl,-z,relro', '-Wl,-z,now', ]
-    if cc.has_argument(ldflag)
-      common_ldflags += ldflag
-    endif
-  endforeach
+  common_ldflags += cc.get_supported_link_arguments([
+    '-Wl,-Bsymbolic',
+    '-Wl,-z,relro',
+    '-Wl,-z,now',
+  ])
 endif
 
 # Maintain compatibility with autotools
@@ -157,11 +151,9 @@ root_dir = include_directories('.')
 
 gnome = import('gnome')
 
-python3 = import('python3').find_python()
+python3 = import('python').find_installation()
 gen_installed_test = files('build-aux/gen-installed-test.py')
 
 subdir('json-glib')
-if find_program('xgettext', required : false).found()
-  subdir('po')
-endif
+subdir('po')
 subdir('doc')
