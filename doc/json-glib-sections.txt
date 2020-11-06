@@ -27,6 +27,8 @@ json_object_foreach_member
 JsonObjectIter
 json_object_iter_init
 json_object_iter_next
+json_object_iter_init_ordered
+json_object_iter_next_ordered
 
 <SUBSECTION>
 json_object_set_array_member
@@ -183,6 +185,7 @@ JsonParserClass
 json_parser_new
 json_parser_new_immutable
 json_parser_load_from_file
+json_parser_load_from_mapped_file
 json_parser_load_from_data
 json_parser_load_from_stream
 json_parser_load_from_stream_async
@@ -343,6 +346,10 @@ JSON_VERSION_1_4
 JSON_AVAILABLE_IN_1_4
 JSON_DEPRECATED_IN_1_4
 JSON_DEPRECATED_IN_1_4_FOR
+JSON_VERSION_1_6
+JSON_AVAILABLE_IN_1_6
+JSON_DEPRECATED_IN_1_6
+JSON_DEPRECATED_IN_1_6_FOR
 
 <SUBSECTION Private>
 JSON_ENCODE_VERSION

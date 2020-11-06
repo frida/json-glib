@@ -1,11 +1,11 @@
-project('json-glib', 'c', version: '1.5.1',
+project('json-glib', 'c', version: '1.6.1',
         license: 'LGPLv2.1+',
         default_options: [
           'warning_level=1',
           'buildtype=debugoptimized',
           'c_std=c99',
         ],
-        meson_version: '>= 0.47.0')
+        meson_version: '>= 0.52.0')
 
 # Versioning
 json_version = meson.project_version()
@@ -23,7 +23,10 @@ json_gettext_domain = json_api_name
 
 # Maintain compatibility with the old soname versioning
 soversion = 0
+current = json_binary_age - json_interface_age
+revision = json_interface_age
 libversion = '@0@.@1@.@2@'.format(soversion, json_binary_age - json_interface_age, json_interface_age)
+darwin_versions = [ current + 1, '@0@.@1@'.format(current + 1, revision) ]
 
 # Paths
 json_includedir = join_paths(get_option('prefix'), get_option('includedir'))
@@ -33,7 +36,7 @@ json_localedir = join_paths(get_option('prefix'), get_option('localedir'))
 json_libexecdir = join_paths(get_option('prefix'), get_option('libexecdir'))
 
 # Dependencies
-glib_req_version = '>= 2.44.0'
+glib_req_version = '>= 2.54.0'
 gio_dep = dependency('gio-2.0', version: glib_req_version,
   fallback: ['glib', 'libgio_dep'])
 
@@ -53,12 +56,6 @@ foreach h: check_headers
 endforeach
 
 cdata.set_quoted('GETTEXT_PACKAGE', json_gettext_domain)
-
-ndebug = get_option('b_ndebug')
-if ndebug == 'true' or (ndebug == 'if-release' and not get_option('debug'))
-  add_project_arguments(['-DG_DISABLE_CAST_CHECKS', '-DG_DISABLE_ASSERT', '-DG_DISABLE_CHECKS'],
-                        language: 'c')
-endif
 
 if cc.get_id() == 'msvc'
   # Compiler options taken from msvc_recommended_pragmas.h
@@ -136,21 +133,18 @@ endif
 
 common_cflags = cc.get_supported_arguments(test_cflags)
 
+if get_option('debug')
+  cdata.set('JSON_ENABLE_DEBUG', true)
+endif
+
 common_ldflags = []
 if host_system == 'linux'
   common_ldflags += cc.get_supported_link_arguments([
     '-Wl,-Bsymbolic',
     '-Wl,-z,relro',
     '-Wl,-z,now',
+    '-Wl,--default-symver',
   ])
-endif
-
-# Maintain compatibility with autotools
-if host_system == 'darwin'
-  common_ldflags += [
-    '-compatibility_version 1',
-    '-current_version @0@.@1@'.format(json_binary_age - json_interface_age, json_interface_age),
-  ]
 endif
 
 root_dir = include_directories('.')
@@ -161,7 +155,5 @@ python3 = import('python').find_installation()
 gen_installed_test = files('build-aux/gen-installed-test.py')
 
 subdir('json-glib')
-if find_program('xgettext', required : false).found()
-  subdir('po')
-endif
+subdir('po')
 subdir('doc')

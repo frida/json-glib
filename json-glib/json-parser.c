@@ -122,20 +122,9 @@ json_parser_clear (JsonParser *parser)
 {
   JsonParserPrivate *priv = parser->priv;
 
-  g_free (priv->variable_name);
-  priv->variable_name = NULL;
-
-  if (priv->last_error)
-    {
-      g_error_free (priv->last_error);
-      priv->last_error = NULL;
-    }
-
-  if (priv->root)
-    {
-      json_node_unref (priv->root);
-      priv->root = NULL;
-    }
+  g_clear_pointer (&priv->variable_name, g_free);
+  g_clear_pointer (&priv->last_error, g_error_free);
+  g_clear_pointer (&priv->root, json_node_unref);
 }
 
 static void
@@ -880,6 +869,14 @@ json_parse_statement (JsonParser  *parser,
     case G_TOKEN_FLOAT:
     case G_TOKEN_STRING:
     case G_TOKEN_IDENTIFIER:
+      if (priv->root != NULL)
+        {
+          JSON_NOTE (PARSER, "Only one top level statement is possible");
+          json_scanner_get_next_token (scanner);
+          priv->error_code = JSON_PARSER_ERROR_INVALID_BAREWORD;
+          return G_TOKEN_EOF;
+        }
+
       JSON_NOTE (PARSER, "Statement is a value");
       token = json_scanner_get_next_token (scanner);
       return json_parse_value (parser, scanner, token, &priv->root);
@@ -888,7 +885,7 @@ json_parse_statement (JsonParser  *parser,
       JSON_NOTE (PARSER, "Unknown statement");
       json_scanner_get_next_token (scanner);
       priv->error_code = JSON_PARSER_ERROR_INVALID_BAREWORD;
-      return G_TOKEN_SYMBOL;
+      return priv->root != NULL ? G_TOKEN_EOF : G_TOKEN_SYMBOL;
     }
 }
 
@@ -1089,6 +1086,9 @@ json_parser_load (JsonParser   *parser,
  * Loads a JSON stream from the content of @filename and parses it. See
  * json_parser_load_from_data().
  *
+ * If the file is large or shared between processes,
+ * json_parser_load_from_mapped_file() may be a more efficient way to load it.
+ *
  * Return value: %TRUE if the file was successfully loaded and parsed.
  *   In case of error, @error is set accordingly and %FALSE is returned
  */
@@ -1127,6 +1127,61 @@ json_parser_load_from_file (JsonParser   *parser,
     }
 
   g_free (data);
+
+  return retval;
+}
+
+/**
+ * json_parser_load_from_mapped_file:
+ * @parser: a #JsonParser
+ * @filename: the path for the file to parse
+ * @error: return location for a #GError, or %NULL
+ *
+ * Loads a JSON stream from the content of @filename and parses it. Unlike
+ * json_parser_load_from_file(), @filename will be memory mapped as read-only
+ * and parsed. @filename will be unmapped before this function returns.
+ *
+ * If mapping or reading the file fails, a %G_FILE_ERROR will be returned.
+ *
+ * Return value: %TRUE if the file was successfully loaded and parsed.
+ *   In case of error, @error is set accordingly and %FALSE is returned
+ * Since: 1.6
+ */
+gboolean
+json_parser_load_from_mapped_file (JsonParser   *parser,
+                                   const gchar  *filename,
+                                   GError      **error)
+{
+  JsonParserPrivate *priv;
+  GError *internal_error = NULL;
+  gboolean retval = TRUE;
+  GMappedFile *mapped_file = NULL;
+
+  g_return_val_if_fail (JSON_IS_PARSER (parser), FALSE);
+  g_return_val_if_fail (filename != NULL, FALSE);
+
+  priv = parser->priv;
+
+  mapped_file = g_mapped_file_new (filename, FALSE, &internal_error);
+  if (mapped_file == NULL)
+    {
+      g_propagate_error (error, internal_error);
+      return FALSE;
+    }
+
+  g_free (priv->filename);
+
+  priv->is_filename = TRUE;
+  priv->filename = g_strdup (filename);
+
+  if (!json_parser_load (parser, g_mapped_file_get_contents (mapped_file),
+                         g_mapped_file_get_length (mapped_file), &internal_error))
+    {
+      g_propagate_error (error, internal_error);
+      retval = FALSE;
+    }
+
+  g_clear_pointer (&mapped_file, g_mapped_file_unref);
 
   return retval;
 }
