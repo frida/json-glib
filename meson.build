@@ -144,7 +144,7 @@ if get_option('debug')
 endif
 
 common_ldflags = []
-if host_system == 'linux'
+if host_system in ['linux', 'android']
   common_ldflags += cc.get_supported_link_arguments([
     '-Wl,-Bsymbolic',
     '-Wl,-z,relro',
