@@ -57,12 +57,6 @@ endforeach
 
 cdata.set_quoted('GETTEXT_PACKAGE', json_gettext_domain)
 
-ndebug = get_option('b_ndebug')
-if ndebug == 'true' or (ndebug == 'if-release' and not get_option('debug'))
-  add_project_arguments(['-DG_DISABLE_CAST_CHECKS', '-DG_DISABLE_ASSERT', '-DG_DISABLE_CHECKS'],
-                        language: 'c')
-endif
-
 if cc.get_id() == 'msvc'
   # Compiler options taken from msvc_recommended_pragmas.h
   # in GLib, based on _Win32_Programming_ by Rector and Newcomer
@@ -144,7 +138,7 @@ if get_option('debug')
 endif
 
 common_ldflags = []
-if host_system in ['linux', 'android']
+if host_system == 'linux'
   common_ldflags += cc.get_supported_link_arguments([
     '-Wl,-Bsymbolic',
     '-Wl,-z,relro',
@@ -161,7 +155,5 @@ python3 = import('python').find_installation()
 gen_installed_test = files('build-aux/gen-installed-test.py')
 
 subdir('json-glib')
-if find_program('xgettext', required : false).found()
-  subdir('po')
-endif
+subdir('po')
 subdir('doc')
