@@ -17,7 +17,7 @@ GLib is a C library providing common and efficient data types for the C
 developers.
 
 GObject is a library providing a run-time Object Oriented type system for C
-developers. GLib and GObject are extensively used by the GTK+ toolkit and by the
+developers. GLib and GObject are extensively used by the GTK toolkit and by the
 [GNOME][gnome] project.
 
 For more information, see:
@@ -34,9 +34,8 @@ In order to build JSON-GLib you will need:
  * [ninja](http://ninja-build.org)
  * [meson](http://mesonbuild.com)
  * pkg-config
- * gtk-doc ≥ 1.13 (optional)
- * GLib, GIO ≥ 2.38
- * GObject-Introspection ≥ 1.38 (optional)
+ * GLib, GIO ≥ 2.54
+ * GObject-Introspection ≥ 1.54 (optional)
 
 Build and installation
 --------------------------------------------------------------------------------
@@ -44,49 +43,12 @@ To build JSON-GLib just run:
 
 ```sh
   $ meson _build .
-  $ ninja -C _build
+  $ meson -C _build
   $ meson test -C _build
-  $ sudo ninja -C _build install
+  $ meson install -C _build
 ```
 
 See the [Meson documentation](http://mesonbuild.com) for more information.
-
-Contributing
---------------------------------------------------------------------------------
-If you find a bug in JSON-GLib, please file an issue on the
-[Issues page][gitlab-issues].
-
-Required information:
-
- * the version of JSON-GLib
-  * if it is a development version, the branch of the git repository
- * the JSON data that produced the bug (if any)
- * a small, self-contained test case, if none of the test units exhibit the
-   buggy behaviour
- * in case of a segmentation fault, a full stack trace with debugging
-   symbols obtained through gdb is greatly appreaciated
-
-JSON-GLib is developed mainly inside a GIT repository available at:
-
-    https://gitlab.gnome.org/GNOME/json-glib/
-
-You can clone the GIT repository with:
-
-    git clone https://gitlab.gnome.org/GNOME/json-glib.git
-
-If you want to contribute functionality or bug fixes to JSON-GLib you should
-fork the json-glib repository, work on a separate branch, and then open a
-merge request on Gitlab:
-
-    https://gitlab.gnome.org/GNOME/json-glib/merge_requests/new
-
-Please, try to conform to the coding style used by JSON-GLib, which is the same
-used by projects like GLib, [GTK+][gtk-coding-style], and Clutter. Coding style
-conformance is a requirement for upstream acceptance.
-
-Make sure you always run the test suite when you are fixing bugs. New features
-should come with a test unit. Patches that regress the test suite will be
-rejected.
 
 Release notes
 --------------------------------------------------------------------------------
@@ -111,9 +73,9 @@ Copyright 2007, 2008  OpenedHand Ltd
 Copyright 2009, 2010, 2011, 2012  Intel Corp.
 Copyright 2013  Emmanuele Bassi
 
-[json]: http://www.json.org "JSON"
-[glib]: http://www.gtk.org "GTK+"
-[json-glib]: https://wiki.gnome.org/Projects/JsonGlib "JSON-GLib wiki"
+[json]: https://www.json.org "JSON"
+[glib]: https://www.gtk.org "GTK"
+[json-glib]: https://gnome.pages.gitlab.gnome.org/json-glib/json-glib-1.0/
 [gnome]: https://www.gnome.org "GNOME"
 [gitlab-issues]: https://gitlab.gnome.org/GNOME/json-glib/issues
-[gtk-coding-style]: https://git.gnome.org/browse/gtk+/tree/docs/CODING-STYLE
+[gtk-coding-style]: https://gitlab.gnome.org/GNOME/gtk/-/blob/HEAD/docs/CODING-STYLE.md

@@ -22,11 +22,11 @@
  */
 
 /**
- * SECTION:json-generator
- * @short_description: Generates JSON data streams
+ * JsonGenerator: 
  *
- * #JsonGenerator provides an object for generating a JSON data stream and
- * put it into a buffer or a file.
+ * `JsonGenerator` provides an object for generating a JSON data stream
+ * from a tree of [struct@Json.Node] instances, and put it into a buffer
+ * or a file.
  */
 
 #include "config.h"
@@ -203,11 +203,13 @@ json_generator_class_init (JsonGeneratorClass *klass)
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 
   /**
-   * JsonGenerator:pretty:
+   * JsonGenerator:pretty: (attributes org.gtk.Property.get=json_generator_get_pretty org.gtk.Property.set=json_generator_set_pretty)
    *
    * Whether the output should be "pretty-printed", with indentation and
-   * newlines. The indentation level can be controlled by using the
-   * JsonGenerator:indent property
+   * newlines.
+   *
+   * The indentation level can be controlled by using the
+   * [property@Json.Generator:indent] property.
    */
   generator_props[PROP_PRETTY] =
     g_param_spec_boolean ("pretty",
@@ -217,7 +219,7 @@ json_generator_class_init (JsonGeneratorClass *klass)
                           G_PARAM_READWRITE);
 
   /**
-   * JsonGenerator:indent:
+   * JsonGenerator:indent: (attributes org.gtk.Property.get=json_generator_get_indent org.gtk.Property.set=json_generator_set_indent)
    *
    * Number of spaces to be used to indent when pretty printing.
    */
@@ -230,9 +232,9 @@ json_generator_class_init (JsonGeneratorClass *klass)
                        G_PARAM_READWRITE);
 
   /**
-   * JsonGenerator:root:
+   * JsonGenerator:root: (attributes org.gtk.Property.get=json_generator_get_root org.gtk.Property.set=json_generator_set_root)
    *
-   * The root #JsonNode to be used when constructing a JSON data
+   * The root node to be used when constructing a JSON data
    * stream.
    *
    * Since: 0.4
@@ -245,7 +247,7 @@ json_generator_class_init (JsonGeneratorClass *klass)
                         G_PARAM_READWRITE);
 
   /**
-   * JsonGenerator:indent-char:
+   * JsonGenerator:indent-char: (attributes org.gtk.Property.get=json_generator_get_indent_char org.gtk.Property.set=json_generator_set_indent_char)
    *
    * The character that should be used when indenting in pretty print.
    *
@@ -469,11 +471,12 @@ dump_object (JsonGenerator *generator,
 /**
  * json_generator_new:
  * 
- * Creates a new #JsonGenerator. You can use this object to generate a
- * JSON data stream starting from a data object model composed by
- * #JsonNodes.
+ * Creates a new `JsonGenerator`.
  *
- * Return value: the newly created #JsonGenerator instance
+ * You can use this object to generate a JSON data stream starting from a
+ * data object model composed by [struct@Json.Node]s.
+ *
+ * Return value: the newly created generator instance
  */
 JsonGenerator *
 json_generator_new (void)
@@ -483,14 +486,13 @@ json_generator_new (void)
 
 /**
  * json_generator_to_gstring:
- * @generator: a #JsonGenerator
- * @string: a #GString
+ * @generator: a generator
+ * @string: a string buffer
  *
- * Generates a JSON data stream from @generator
- * and appends it to @string.
+ * Generates a JSON data stream and appends it to the string buffer.
  *
- * Return value: (transfer none): a #GString holding a JSON data stream.
- *   Use g_string_free() to free the allocated resources.
+ * Return value: (transfer none): the passed string, updated with
+ *   the generated JSON data
  *
  * Since: 1.4
  */
@@ -512,15 +514,14 @@ json_generator_to_gstring (JsonGenerator *generator,
 
 /**
  * json_generator_to_data:
- * @generator: a #JsonGenerator
- * @length: (out): return location for the length of the returned
- *   buffer, or %NULL
+ * @generator: a generator
+ * @length: (out) (optional): return location for the length of the returned
+ *   buffer
  *
  * Generates a JSON data stream from @generator and returns it as a
  * buffer.
  *
- * Return value: a newly allocated buffer holding a JSON data stream.
- *   Use g_free() to free the allocated resources.
+ * Return value: (transfer full): a newly allocated string holding a JSON data stream
  */
 gchar *
 json_generator_to_data (JsonGenerator *generator,
@@ -541,12 +542,15 @@ json_generator_to_data (JsonGenerator *generator,
 
 /**
  * json_generator_to_file:
- * @generator: a #JsonGenerator
- * @filename: path to the target file
+ * @generator: a generator
+ * @filename: (type filename): the path to the target file
  * @error: return location for a #GError, or %NULL
  *
- * Creates a JSON data stream and puts it inside @filename, overwriting the
- * current file contents. This operation is atomic.
+ * Creates a JSON data stream and puts it inside `filename`, overwriting
+ * the file's current contents.
+ *
+ * This operation is atomic, in the sense that the data is written to a
+ * temporary file which is then renamed to the given `filename`.
  *
  * Return value: %TRUE if saving was successful.
  */
@@ -571,15 +575,14 @@ json_generator_to_file (JsonGenerator  *generator,
 
 /**
  * json_generator_to_stream:
- * @generator: a #JsonGenerator
- * @stream: a #GOutputStream
- * @cancellable: (allow-none): a #GCancellable, or %NULL
+ * @generator: a generator
+ * @stream: the output stream used to write the JSON data
+ * @cancellable: (nullable): a `GCancellable`
  * @error: return location for a #GError, or %NULL
  *
- * Outputs JSON data and streams it (synchronously) to @stream.
+ * Outputs JSON data and writes it (synchronously) to the given stream.
  *
- * Return value: %TRUE if the write operation was successful, and %FALSE
- *   on failure. In case of error, the #GError will be filled accordingly
+ * Return value: whether the write operation was successful
  *
  * Since: 0.12
  */
@@ -607,14 +610,14 @@ json_generator_to_stream (JsonGenerator  *generator,
 }
 
 /**
- * json_generator_set_root:
- * @generator: a #JsonGenerator
- * @node: a #JsonNode
+ * json_generator_set_root: (attributes org.gtk.Method.set_property=root)
+ * @generator: a generator
+ * @node: the root node
  *
- * Sets @node as the root of the JSON data stream to be serialized by
- * the #JsonGenerator.
+ * Sets the root of the JSON data stream to be serialized by
+ * the given generator.
  *
- * The passed @node is copied by the generator object, so it can be
+ * The passed `node` is copied by the generator object, so it can be
  * safely freed after calling this function.
  */
 void
@@ -639,14 +642,13 @@ json_generator_set_root (JsonGenerator *generator,
 }
 
 /**
- * json_generator_get_root:
- * @generator: a #JsonGenerator
+ * json_generator_get_root: (attributes org.gtk.Method.get_property=root)
+ * @generator: a generator
  *
- * Retrieves a pointer to the root #JsonNode set using
- * json_generator_set_root().
+ * Retrieves a pointer to the root node set using
+ * [method@Json.Generator.set_root].
  *
- * Return value: (nullable) (transfer none): a #JsonNode, or %NULL. The returned
- * node is owned by the #JsonGenerator and it should not be freed
+ * Return value: (nullable) (transfer none): the root node
  *
  * Since: 0.14
  */
@@ -659,13 +661,15 @@ json_generator_get_root (JsonGenerator *generator)
 }
 
 /**
- * json_generator_set_pretty:
- * @generator: a #JsonGenerator
+ * json_generator_set_pretty: (attributes org.gtk.Method.set_property=pretty)
+ * @generator: a generator
  * @is_pretty: whether the generated string should be pretty printed
  *
- * Sets whether the generated JSON should be pretty printed, using the
- * indentation character specified in the #JsonGenerator:indent-char
- * property and the spacing specified in #JsonGenerator:indent property.
+ * Sets whether the generated JSON should be pretty printed.
+ *
+ * Pretty printing will use indentation character specified in the
+ * [property@Json.Generator:indent-char] property and the spacing
+ * specified in the [property@Json.Generator:indent] property.
  *
  * Since: 0.14
  */
@@ -690,13 +694,13 @@ json_generator_set_pretty (JsonGenerator *generator,
 }
 
 /**
- * json_generator_get_pretty:
- * @generator: a #JsonGenerator
+ * json_generator_get_pretty: (attributes org.gtk.Method.get_property=pretty)
+ * @generator: a generator
  *
- * Retrieves the value set using json_generator_set_pretty().
+ * Retrieves the value set using [method@Json.Generator.set_pretty].
  *
- * Return value: %TRUE if the generated JSON should be pretty-printed, and
- *   %FALSE otherwise
+ * Return value: `TRUE` if the generated JSON should be pretty-printed, and
+ *   `FALSE` otherwise
  *
  * Since: 0.14
  */
@@ -709,8 +713,8 @@ json_generator_get_pretty (JsonGenerator *generator)
 }
 
 /**
- * json_generator_set_indent:
- * @generator: a #JsonGenerator
+ * json_generator_set_indent: (attributes org.gtk.Method.set_property=indent)
+ * @generator: a generator
  * @indent_level: the number of repetitions of the indentation character
  *   that should be applied when pretty printing
  *
@@ -737,10 +741,10 @@ json_generator_set_indent (JsonGenerator *generator,
 }
 
 /**
- * json_generator_get_indent:
- * @generator: a #JsonGenerator
+ * json_generator_get_indent: (attributes org.gtk.Method.get_property=indent)
+ * @generator: a generator
  *
- * Retrieves the value set using json_generator_set_indent().
+ * Retrieves the value set using [method@Json.Generator.set_indent].
  *
  * Return value: the number of repetitions per indentation level
  *
@@ -755,11 +759,11 @@ json_generator_get_indent (JsonGenerator *generator)
 }
 
 /**
- * json_generator_set_indent_char:
- * @generator: a #JsonGenerator
+ * json_generator_set_indent_char: (attributes org.gtk.Method.set_property=indent-char)
+ * @generator: a generator
  * @indent_char: a Unicode character to be used when indenting
  *
- * Sets the character to be used when indenting
+ * Sets the character to be used when indenting.
  *
  * Since: 0.14
  */
@@ -782,10 +786,10 @@ json_generator_set_indent_char (JsonGenerator *generator,
 }
 
 /**
- * json_generator_get_indent_char:
- * @generator: a #JsonGenerator
+ * json_generator_get_indent_char: (attributes org.gtk.Method.get_property=indent-char)
+ * @generator: a generator
  *
- * Retrieves the value set using json_generator_set_indent_char().
+ * Retrieves the value set using [method@Json.Generator.set_indent_char].
  *
  * Return value: the character to be used when indenting
  *

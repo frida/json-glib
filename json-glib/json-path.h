@@ -38,7 +38,7 @@ G_BEGIN_DECLS
 /**
  * JSON_PATH_ERROR:
  *
- * Error domain for #JsonPath errors
+ * Error domain for `JsonPath`.
  *
  * Since: 0.14
  */
@@ -48,7 +48,9 @@ G_BEGIN_DECLS
  * JsonPathError:
  * @JSON_PATH_ERROR_INVALID_QUERY: Invalid query
  *
- * Error code enumeration for the %JSON_PATH_ERROR domain.
+ * Error codes for `JSON_PATH_ERROR`.
+ *
+ * This enumeration can be extended at later date
  *
  * Since: 0.14
  */
@@ -56,24 +58,7 @@ typedef enum {
   JSON_PATH_ERROR_INVALID_QUERY
 } JsonPathError;
 
-/**
- * JsonPath:
- *
- * The `JsonPath` structure is an opaque object whose members cannot be
- * directly accessed except through the provided API.
- *
- * Since: 0.14
- */
 typedef struct _JsonPath        JsonPath;
-
-/**
- * JsonPathClass:
- *
- * The `JsonPathClass` structure is an opaque object class whose members
- * cannot be directly accessed.
- *
- * Since: 0.14
- */
 typedef struct _JsonPathClass   JsonPathClass;
 
 JSON_AVAILABLE_IN_1_0

@@ -19,53 +19,6 @@
  *   Emmanuele Bassi  <ebassi@linux.intel.com>
  */
 
-/**
- * SECTION:json-gboxed
- * @short_description: Serialize and deserialize GBoxed types
- *
- * GLib's #GBoxed type is a generic wrapper for arbitrary C structures.
- *
- * JSON-GLib allows serialization and deserialization of a #GBoxed type
- * by registering functions mapping a #JsonNodeType to a specific
- * #GType.
- *
- * When registering a #GBoxed type you should also register the
- * corresponding transformation functions, e.g.:
- *
- * |[<!-- language="C" -->
- *   GType
- *   my_struct_get_type (void)
- *   {
- *     static GType boxed_type = 0;
- *
- *     if (boxed_type == 0)
- *       {
- *         boxed_type =
- *           g_boxed_type_register_static (g_intern_static_string ("MyStruct"),
- *                                         (GBoxedCopyFunc) my_struct_copy,
- *                                         (GBoxedFreeFunc) my_struct_free);
- *
- *         json_boxed_register_serialize_func (boxed_type, JSON_NODE_OBJECT,
- *                                             my_struct_serialize);
- *         json_boxed_register_deserialize_func (boxed_type, JSON_NODE_OBJECT,
- *                                               my_struct_deserialize);
- *       }
- *
- *     return boxed_type;
- *   }
- * ]|
- *
- * The serialization function will be invoked by json_boxed_serialize():
- * it will be passed a pointer to the C structure and it must return a
- * #JsonNode. The deserialization function will be invoked by
- * json_boxed_deserialize(): it will be passed a #JsonNode for the
- * declared type and it must return a newly allocated C structure.
- *
- * It is possible to check whether a #GBoxed type can be deserialized
- * from a specific #JsonNodeType, and whether a #GBoxed can be serialized
- * and to which specific #JsonNodeType.
- */
-
 #include "config.h"
 
 #include <string.h>
@@ -137,11 +90,10 @@ lookup_boxed_transform (GSList       *transforms,
  * json_boxed_register_serialize_func: (skip)
  * @gboxed_type: a boxed type
  * @node_type: a node type
- * @serialize_func: serialization function for @boxed_type into
- *   a #JsonNode of type @node_type
+ * @serialize_func: serialization function
  *
- * Registers a serialization function for a #GBoxed of type @gboxed_type
- * to a #JsonNode of type @node_type
+ * Registers a serialization function for a `GBoxed` of type `gboxed_type`
+ * to a [struct@Json.Node] of type `node_type`.
  *
  * Since: 0.10
  */
@@ -182,11 +134,10 @@ json_boxed_register_serialize_func (GType                  gboxed_type,
  * json_boxed_register_deserialize_func: (skip)
  * @gboxed_type: a boxed type
  * @node_type: a node type
- * @deserialize_func: deserialization function for @boxed_type from
- *   a #JsonNode of type @node_type
+ * @deserialize_func: deserialization function
  *
- * Registers a deserialization function for a #GBoxed of type @gboxed_type
- * from a #JsonNode of type @node_type
+ * Registers a deserialization function for a `GBoxed` of type `gboxed_type`
+ * from a [struct@Json.Node] of type `node_type`.
  *
  * Since: 0.10
  */
@@ -226,16 +177,16 @@ json_boxed_register_deserialize_func (GType                    gboxed_type,
 /**
  * json_boxed_can_serialize:
  * @gboxed_type: a boxed type
- * @node_type: (out): the #JsonNode type to which the boxed type can be
- *   serialized into
+ * @node_type: (out) (optional): the node type to which the boxed type
+ *   can be serialized into
  *
- * Checks whether it is possible to serialize a #GBoxed of
- * type @gboxed_type into a #JsonNode. The type of the
- * #JsonNode is placed inside @node_type if the function
- * returns %TRUE and it's undefined otherwise.
+ * Checks whether it is possible to serialize a `GBoxed` of
+ * type `gboxed_type` into a [struct@Json.Node].
  *
- * Return value: %TRUE if the type can be serialized,
- *   and %FALSE otherwise.
+ * The type of the node is placed inside `node_type` if the function
+ * returns `TRUE`, and it's undefined otherwise.
+ *
+ * Return value: `TRUE` if the type can be serialized, and `FALSE` otherwise
  *
  * Since: 0.10
  */
@@ -263,12 +214,12 @@ json_boxed_can_serialize (GType         gboxed_type,
 /**
  * json_boxed_can_deserialize:
  * @gboxed_type: a boxed type
- * @node_type: a #JsonNode type
+ * @node_type: a node type
  *
- * Checks whether it is possible to deserialize a #GBoxed of
- * type @gboxed_type from a #JsonNode of type @node_type
+ * Checks whether it is possible to deserialize a `GBoxed` of
+ * type `gboxed_type` from a [struct@Json.Node] of type `node_type`.
  *
- * Return value: %TRUE if the type can be deserialized, %FALSE otherwise
+ * Return value: `TRUE` if the type can be deserialized, and `FALSE` otherwise
  *
  * Since: 0.10
  */
@@ -291,13 +242,13 @@ json_boxed_can_deserialize (GType        gboxed_type,
 /**
  * json_boxed_serialize:
  * @gboxed_type: a boxed type
- * @boxed: a pointer to a #GBoxed of type @gboxed_type
+ * @boxed: a pointer to a boxed of type `gboxed_type`
  *
- * Serializes @boxed, a pointer to a #GBoxed of type @gboxed_type,
- * into a #JsonNode
+ * Serializes a pointer to a `GBoxed` of the given type into a [struct@Json.Node].
  *
- * Return value: (nullable) (transfer full): a #JsonNode with the serialization of
- *   the boxed type, or %NULL if serialization either failed or was not possible
+ * If the serialization is not possible, this function will return `NULL`.
+ *
+ * Return value: (nullable) (transfer full): a node with the serialized boxed type
  *
  * Since: 0.10
  */
@@ -321,13 +272,11 @@ json_boxed_serialize (GType         gboxed_type,
 /**
  * json_boxed_deserialize:
  * @gboxed_type: a boxed type
- * @node: a #JsonNode
+ * @node: a node
  *
- * Deserializes @node into a #GBoxed of @gboxed_type
+ * Deserializes the given [struct@Json.Node] into a `GBoxed` of the given type.
  *
- * Return value: (transfer full): the newly allocated #GBoxed. Use
- *   g_boxed_free() to release the resources allocated by this
- *   function
+ * Return value: (transfer full): the newly allocated boxed data
  *
  * Since: 0.10
  */

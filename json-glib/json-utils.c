@@ -17,14 +17,6 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * SECTION:json-utils
- * @Title: Utility API
- * @Short_description: Various utility functions
- *
- * Various utility functions.
- */
-
 #include "config.h"
 
 #include "json-utils.h"
@@ -36,13 +28,14 @@
  * @str: a valid UTF-8 string containing JSON data
  * @error: return location for a #GError
  *
- * Parses the string in @str and returns a #JsonNode representing
- * the JSON tree. If @str is empty, this function will return %NULL.
+ * Parses the given string and returns the corresponding JSON tree.
  *
- * In case of parsing error, this function returns %NULL and sets
- * @error appropriately.
+ * If the string is empty, this function will return `NULL`.
  *
- * Returns: (transfer full) (nullable): a #JsonNode, or %NULL
+ * In case of parsing error, this function returns `NULL` and sets
+ * the error appropriately.
+ *
+ * Returns: (transfer full) (nullable): the root node of the JSON tree
  *
  * Since: 1.2
  */
@@ -71,13 +64,13 @@ json_from_string (const char  *str,
 
 /**
  * json_to_string:
- * @node: a #JsonNode
+ * @node: a JSON tree
  * @pretty: whether the output should be prettyfied for printing
  *
  * Generates a stringified JSON representation of the contents of
- * the passed @node.
+ * the given `node`.
  *
- * Returns: (transfer full): the string representation of the #JsonNode
+ * Returns: (transfer full): the string representation of the node
  *
  * Since: 1.2
  */
