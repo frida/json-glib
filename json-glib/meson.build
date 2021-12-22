@@ -92,8 +92,7 @@ json_lib = library(
 )
 
 pkgg = import('pkgconfig')
-pkgg.generate(
-  libraries: json_lib,
+pkgg.generate(json_lib,
   subdirs: json_api_name,
   extra_cflags: json_compile_args,
   version: json_version,
