@@ -134,6 +134,8 @@ json_glib_dep = declare_dependency(
   sources: [ json_enum_types_h, json_glib_gir ],
 )
 
+meson.override_dependency(json_api_name, json_glib_dep)
+
 tools = [
   [ 'json-glib-validate', [ 'json-glib-validate.c', ] ],
   [ 'json-glib-format', [ 'json-glib-format.c', ] ],
