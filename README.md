@@ -42,8 +42,8 @@ Build and installation
 To build JSON-GLib just run:
 
 ```sh
-  $ meson _build .
-  $ meson -C _build
+  $ meson setup _build .
+  $ meson compile -C _build
   $ meson test -C _build
   $ meson install -C _build
 ```
@@ -75,7 +75,7 @@ Copyright 2013  Emmanuele Bassi
 
 [json]: https://www.json.org "JSON"
 [glib]: https://www.gtk.org "GTK"
-[json-glib]: https://gnome.pages.gitlab.gnome.org/json-glib/json-glib-1.0/
+[json-glib]: https://gnome.pages.gitlab.gnome.org/json-glib/
 [gnome]: https://www.gnome.org "GNOME"
 [gitlab-issues]: https://gitlab.gnome.org/GNOME/json-glib/issues
 [gtk-coding-style]: https://gitlab.gnome.org/GNOME/gtk/-/blob/HEAD/docs/CODING-STYLE.md

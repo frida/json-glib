@@ -83,7 +83,8 @@ json_lib = library(
 )
 
 pkgg = import('pkgconfig')
-pkgg.generate(json_lib,
+pkgg.generate(
+  libraries: json_lib,
   subdirs: json_api_name,
   version: json_version,
   name: 'JSON-GLib',
@@ -124,8 +125,6 @@ json_glib_dep = declare_dependency(
   dependencies: [gio_dep],
   sources: [ json_enum_types_h, json_glib_gir ],
 )
-
-meson.override_dependency(json_api_name, json_glib_dep)
 
 tools = [
   [ 'json-glib-validate', [ 'json-glib-validate.c', ] ],

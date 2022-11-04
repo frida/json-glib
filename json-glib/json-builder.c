@@ -52,7 +52,7 @@
  *
  * json_builder_end_object (builder);
  *
- * g_autoptr(JsonNode) root root = json_builder_get_root (builder);
+ * g_autoptr(JsonNode) root = json_builder_get_root (builder);
  *
  * g_autoptr(JsonGenerator) gen = json_generator_new ();
  * json_generator_set_root (gen, root);
@@ -315,9 +315,9 @@ json_builder_get_root (JsonBuilder *builder)
     root = json_node_copy (builder->priv->root);
 
   /* Sanity check. */
-  g_return_val_if_fail (!builder->priv->immutable ||
-                        root == NULL ||
-                        json_node_is_immutable (root), NULL);
+  g_assert (!builder->priv->immutable ||
+            root == NULL ||
+            json_node_is_immutable (root));
 
   return root;
 }

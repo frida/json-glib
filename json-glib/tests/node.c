@@ -28,7 +28,7 @@ test_init_boolean (void)
   JsonNode *node = json_node_new (JSON_NODE_VALUE);
 
   json_node_set_boolean (node, TRUE);
-  g_assert (json_node_get_boolean (node));
+  g_assert_true (json_node_get_boolean (node));
 
   json_node_free (node);
 }
@@ -107,7 +107,7 @@ test_copy_object (void)
   copy = json_node_copy (node);
 
   g_assert_cmpint (json_node_get_node_type (node), ==, json_node_get_node_type (copy));
-  g_assert (json_node_get_object (node) == json_node_get_object (copy));
+  g_assert_true (json_node_get_object (node) == json_node_get_object (copy));
 
   json_node_free (copy);
   json_node_free (node);
@@ -118,8 +118,8 @@ test_null (void)
 {
   JsonNode *node = json_node_new (JSON_NODE_NULL);
 
-  g_assert (JSON_NODE_HOLDS_NULL (node));
-  g_assert (json_node_is_null (node));
+  g_assert_true (JSON_NODE_HOLDS_NULL (node));
+  g_assert_true (json_node_is_null (node));
   g_assert_cmpint (json_node_get_value_type (node), ==, G_TYPE_INVALID);
   g_assert_cmpstr (json_node_type_name (node), ==, "NULL");
 
@@ -134,14 +134,14 @@ test_get_int (void)
   json_node_set_int (node, 0);
   g_assert_cmpint (json_node_get_int (node), ==, 0);
   json_assert_almost_equals (json_node_get_double (node), 0.0);
-  g_assert (!json_node_get_boolean (node));
-  g_assert (!json_node_is_null (node));
+  g_assert_false (json_node_get_boolean (node));
+  g_assert_false (json_node_is_null (node));
 
   json_node_set_int (node, 42);
   g_assert_cmpint (json_node_get_int (node), ==, 42);
   json_assert_almost_equals (json_node_get_double (node), 42.0);
-  g_assert (json_node_get_boolean (node));
-  g_assert (!json_node_is_null (node));
+  g_assert_true (json_node_get_boolean (node));
+  g_assert_false (json_node_is_null (node));
 
   json_node_free (node);
 }
@@ -154,7 +154,7 @@ test_get_double (void)
   json_node_set_double (node, 3.14);
   json_assert_fuzzy_equals (json_node_get_double (node), 3.14, 0.001);
   g_assert_cmpint (json_node_get_int (node), ==, 3);
-  g_assert (json_node_get_boolean (node));
+  g_assert_true (json_node_get_boolean (node));
 
   json_node_free (node);
 }
@@ -213,17 +213,14 @@ test_gvalue_autopromotion (void)
 
   g_assert_cmpint (JSON_NODE_TYPE (node), ==, JSON_NODE_VALUE);
 
-  if (g_test_verbose ())
-    g_print ("Autopromotion of int to int64\n");
-
+  g_test_message ("Autopromotion of int to int64");
   g_value_init (&value, G_TYPE_INT);
   g_value_set_int (&value, 42);
 
   json_node_set_value (node, &value);
   json_node_get_value (node, &check);
 
-  if (g_test_verbose ())
-    g_print ("Expecting an gint64, got a %s\n", g_type_name (G_VALUE_TYPE (&check)));
+  g_test_message ("Expecting an gint64, got a '%s'", g_type_name (G_VALUE_TYPE (&check)));
 
   g_assert_cmpint (G_VALUE_TYPE (&check), ==, G_TYPE_INT64);
   g_assert_cmpint (g_value_get_int64 (&check), ==, 42);
@@ -233,17 +230,14 @@ test_gvalue_autopromotion (void)
   g_value_unset (&value);
   g_value_unset (&check);
 
-  if (g_test_verbose ())
-    g_print ("Autopromotion of float to double\n");
-
+  g_test_message ("Autopromotion of float to double");
   g_value_init (&value, G_TYPE_FLOAT);
   g_value_set_float (&value, 3.14159f);
 
   json_node_set_value (node, &value);
   json_node_get_value (node, &check);
 
-  if (g_test_verbose ())
-    g_print ("Expecting a gdouble, got a %s\n", g_type_name (G_VALUE_TYPE (&check))); 
+  g_test_message ("Expecting a gdouble, got a '%s'", g_type_name (G_VALUE_TYPE (&check))); 
 
   g_assert_cmpint (G_VALUE_TYPE (&check), ==, G_TYPE_DOUBLE);
   json_assert_fuzzy_equals (g_value_get_double (&check), 3.14159, 0.00001);

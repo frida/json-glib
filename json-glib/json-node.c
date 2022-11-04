@@ -400,7 +400,9 @@ json_node_new (JsonNodeType type)
  *
  * Copies @node.
  *
- * If the node contains complex data types, those will also be copied.
+ * If the node contains complex data types, their reference
+ * counts are increased, regardless of whether the node is mutable or
+ * immutable.
  *
  * The copy will be immutable if, and only if, @node is immutable. However,
  * there should be no need to copy an immutable node.
@@ -430,11 +432,11 @@ json_node_copy (JsonNode *node)
   switch (copy->type)
     {
     case JSON_NODE_OBJECT:
-      copy->data.object = json_object_copy (node->data.object, copy);
+      copy->data.object = json_node_dup_object (node);
       break;
 
     case JSON_NODE_ARRAY:
-      copy->data.array = json_array_copy (node->data.array, copy);
+      copy->data.array = json_node_dup_array (node);
       break;
 
     case JSON_NODE_VALUE:
@@ -1441,11 +1443,7 @@ json_node_hash (gconstpointer key)
     case JSON_NODE_OBJECT:
       return object_hash ^ json_object_hash (json_node_get_object (node));
     default:
-#ifdef G_DISABLE_CHECKS
-      g_abort ();
-#else
       g_assert_not_reached ();
-#endif
     }
 }
 
@@ -1552,10 +1550,6 @@ json_node_equal (gconstpointer  a,
     }
     case JSON_VALUE_INVALID:
     default:
-#ifdef G_DISABLE_CHECKS
-      g_abort ();
-#else
       g_assert_not_reached ();
-#endif
     }
 }

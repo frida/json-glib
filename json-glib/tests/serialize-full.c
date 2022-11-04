@@ -158,7 +158,7 @@ G_DEFINE_TYPE_WITH_CODE (TestObject, test_object, G_TYPE_OBJECT,
                                                 json_serializable_iface_init));
 
 static JsonNode *
-test_object_serialize_property (JsonSerializable *serializable,
+test_object_serialize_property (JsonSerializable *serializable G_GNUC_UNUSED,
                                 const gchar      *name,
                                 const GValue     *value,
                                 GParamSpec       *pspec)
@@ -406,35 +406,33 @@ test_deserialize (void)
 
   error = NULL;
   object = json_gobject_from_data (TEST_TYPE_OBJECT, var_test, -1, &error);
-  if (error)
-    g_error ("*** Unable to parse buffer: %s\n", error->message);
+  g_assert_no_error (error);
 
-  if (g_test_verbose ())
-    g_print ("*** TestObject ***\n"
-             " foo: %s\n"
-             " bar: %s\n"
-             " baz: %s\n"
-             " meh: %s\n",
-             TEST_OBJECT (object)->m_int == 42             ? "<true>" : "<false>",
-             TEST_OBJECT (object)->m_bool == TRUE          ? "<true>" : "<false>",
-             TEST_OBJECT (object)->m_str != NULL           ? "<true>" : "<false>",
-             TEST_OBJECT (object)->m_enum == TEST_ENUM_BAZ ? "<true>" : "<false>");
+  g_test_message ("*** TestObject ***\n"
+                  " foo: %s\n"
+                  " bar: %s\n"
+                  " baz: %s\n"
+                  " meh: %s",
+                  TEST_OBJECT (object)->m_int == 42             ? "<true>" : "<false>",
+                  TEST_OBJECT (object)->m_bool == TRUE          ? "<true>" : "<false>",
+                  TEST_OBJECT (object)->m_str != NULL           ? "<true>" : "<false>",
+                  TEST_OBJECT (object)->m_enum == TEST_ENUM_BAZ ? "<true>" : "<false>");
 
   g_assert_cmpint (TEST_OBJECT (object)->m_int, ==, 42);
-  g_assert (TEST_OBJECT (object)->m_bool);
+  g_assert_true (TEST_OBJECT (object)->m_bool);
   g_assert_cmpstr (TEST_OBJECT (object)->m_str, ==, "hello");
   g_assert_cmpint (TEST_OBJECT (object)->m_enum, ==, TEST_ENUM_BAZ);
 
-  g_assert (TEST_OBJECT (object)->m_strv != NULL);
+  g_assert_nonnull (TEST_OBJECT (object)->m_strv);
   g_assert_cmpint (g_strv_length (TEST_OBJECT (object)->m_strv), ==, 4);
 
   str = g_strjoinv (NULL, TEST_OBJECT (object)->m_strv);
   g_assert_cmpstr (str, ==, "hello, world!");
   g_free (str);
 
-  g_assert (TEST_IS_OBJECT (TEST_OBJECT (object)->m_obj));
+  g_assert_true (TEST_IS_OBJECT (TEST_OBJECT (object)->m_obj));
   test = TEST_OBJECT (TEST_OBJECT (object)->m_obj);
-  g_assert (test->m_bool);
+  g_assert_true (test->m_bool);
   g_assert_cmpstr (test->m_str, ==, "world");
   g_assert_cmpint (test->m_enum, ==, TEST_ENUM_FOO);
   g_assert_cmpint (test->m_flags, ==, TEST_FLAGS_FOO | TEST_FLAGS_BAR);

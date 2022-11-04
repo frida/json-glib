@@ -1,11 +1,13 @@
-project('json-glib', 'c', version: '1.6.7',
-        license: 'LGPLv2.1+',
-        default_options: [
-          'warning_level=1',
-          'buildtype=debugoptimized',
-          'c_std=c99',
-        ],
-        meson_version: '>= 0.55.3')
+project('json-glib', 'c',
+  version: '1.7.1',
+  license: 'LGPL-2.1-or-later',
+  default_options: [
+    'warning_level=2',
+    'buildtype=debugoptimized',
+    'c_std=gnu99',
+  ],
+  meson_version: '>= 0.62.0',
+)
 
 # Versioning
 json_version = meson.project_version()
@@ -56,12 +58,6 @@ foreach h: check_headers
 endforeach
 
 cdata.set_quoted('GETTEXT_PACKAGE', json_gettext_domain)
-
-ndebug = get_option('b_ndebug')
-if ndebug == 'true' or (ndebug == 'if-release' and not get_option('debug'))
-  add_project_arguments(['-DG_DISABLE_CAST_CHECKS', '-DG_DISABLE_ASSERT', '-DG_DISABLE_CHECKS'],
-                        language: 'c')
-endif
 
 if cc.get_id() == 'msvc'
   # Compiler options taken from msvc_recommended_pragmas.h
@@ -158,9 +154,12 @@ python3 = import('python').find_installation()
 gen_installed_test = files('build-aux/gen-installed-test.py')
 
 subdir('json-glib')
-if find_program('xgettext', required : false).found()
+
+# xgettext is optional (on Windows for instance)
+if find_program('xgettext', required : get_option('nls')).found()
   subdir('po')
 endif
+
 subdir('doc')
 
 if not meson.is_subproject()
