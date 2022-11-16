@@ -141,6 +141,10 @@ endif
 
 common_cflags = cc.get_supported_arguments(test_cflags)
 
+if meson.is_subproject() and cc.get_id() != 'msvc'
+  common_cflags += '-w'
+endif
+
 if get_option('debug')
   cdata.set('JSON_ENABLE_DEBUG', true)
 endif
