@@ -142,6 +142,10 @@ endif
 
 common_cflags = cc.get_supported_arguments(test_cflags)
 
+if meson.is_subproject() and cc.get_argument_syntax() != 'msvc'
+  common_cflags += '-w'
+endif
+
 common_ldflags = cc.get_supported_link_arguments([
   '-Wl,-Bsymbolic',
   '-Wl,-z,relro',
