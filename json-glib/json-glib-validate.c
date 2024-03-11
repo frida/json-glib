@@ -39,7 +39,7 @@ static char **files = NULL;
 
 static GOptionEntry entries[] = {
   { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files, NULL, NULL },
-  { NULL },
+  G_OPTION_ENTRY_NULL
 };
 
 static gboolean
