@@ -1,8 +1,10 @@
 /* json-generator.h - JSON streams generator
  * 
  * This file is part of JSON-GLib
- * Copyright (C) 2007  OpenedHand Ltd.
- * Copyright (C) 2009  Intel Corp.
+ *
+ * SPDX-FileCopyrightText: 2007  OpenedHand Ltd.
+ * SPDX-FileCopyrightText: 2009  Intel Corp.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -20,9 +22,7 @@
  * Author:
  *   Emmanuele Bassi  <ebassi@linux.intel.com>
  */
-
-#ifndef __JSON_GENERATOR_H__
-#define __JSON_GENERATOR_H__
+#pragma once
 
 #if !defined(__JSON_GLIB_INSIDE__) && !defined(JSON_COMPILATION)
 #error "Only <json-glib/json-glib.h> can be included directly."
@@ -90,6 +90,9 @@ void            json_generator_set_root         (JsonGenerator  *generator,
                                                  JsonNode       *node);
 JSON_AVAILABLE_IN_1_0
 JsonNode *      json_generator_get_root         (JsonGenerator  *generator);
+JSON_AVAILABLE_IN_1_10
+void            json_generator_take_root        (JsonGenerator  *generator,
+                                                 JsonNode       *node);
 
 JSON_AVAILABLE_IN_1_4
 GString        *json_generator_to_gstring       (JsonGenerator  *generator,
@@ -113,5 +116,3 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (JsonGenerator, g_object_unref)
 #endif
 
 G_END_DECLS
-
-#endif /* __JSON_GENERATOR_H__ */

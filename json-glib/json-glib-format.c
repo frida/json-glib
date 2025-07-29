@@ -2,7 +2,8 @@
  * 
  * This file is part of JSON-GLib
  *
- * Copyright © 2013  Emmanuele Bassi
+ * SPDX-FileCopyrightText: 2013  Emmanuele Bassi
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -59,7 +60,7 @@ static GOptionEntry entries[] = {
   { "indent-spaces", 'i', 0, G_OPTION_ARG_INT, &indent_spaces, N_("Indentation spaces"), N_("SPACES") },
   { "output", 'o', 0, G_OPTION_ARG_FILENAME, &output, N_("Output file"), N_("FILE") },
   { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files, NULL, N_("FILE…") },
-  G_OPTION_ENTRY_NULL
+  { NULL, 0, 0, 0, NULL, NULL, NULL },
 };
 
 static gboolean

@@ -1,3 +1,13 @@
+// SPDX-FileCopyrightText: 2010 Igalia S.L.
+// SPDX-FileCopyrightText: 2011 Intel Corp.
+// SPDX-FileCopyrightText: 2012 Emmanuele Bassi
+// SPDX-FileCopyrightText: 2013 Joseph Artsimovich
+// SPDX-FileCopyrightText: 2014 Stef Walter
+// SPDX-FileCopyrightText: 2015 djcb
+// SPDX-FileCopyrightText: 2022 Frederic Martinsons
+//
+// SPDX-License-Identifier: LGPL-2.1-or-later
+
 #include <glib.h>
 #include <json-glib/json-glib.h>
 #include <string.h>
@@ -169,6 +179,7 @@ test_gvariant_to_json (gconstpointer test_data)
   gchar *json_data;
   gsize len;
 
+  g_test_message ("Serializing: '%s' (signature: '%s')", test_case->variant_data, test_case->signature);
   variant = g_variant_parse (G_VARIANT_TYPE (test_case->signature),
                              test_case->variant_data,
                              NULL,
@@ -192,6 +203,7 @@ test_json_to_gvariant (gconstpointer test_data)
   gchar *variant_data;
   GError *error = NULL;
 
+  g_test_message ("Deserializing: '%s' (signature: '%s')", test_case->json_data, test_case->signature);
   variant = json_gvariant_deserialize_data (test_case->json_data,
                                             -1,
                                             test_case->signature,

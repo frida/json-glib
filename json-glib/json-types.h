@@ -1,8 +1,10 @@
 /* json-types.h - JSON data types
  * 
  * This file is part of JSON-GLib
- * Copyright (C) 2007  OpenedHand Ltd.
- * Copyright (C) 2009  Intel Corp.
+ *
+ * SPDX-FileCopyrightText: 2007  OpenedHand Ltd.
+ * SPDX-FileCopyrightText: 2009  Intel Corp.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,8 +23,7 @@
  *   Emmanuele Bassi  <ebassi@linux.intel.com>
  */
 
-#ifndef __JSON_TYPES_H__
-#define __JSON_TYPES_H__
+#pragma once
 
 #if !defined(__JSON_GLIB_INSIDE__) && !defined(JSON_COMPILATION)
 #error "Only <json-glib/json-glib.h> can be included directly."
@@ -121,7 +122,7 @@ typedef enum {
  * @object: the iterated JSON object
  * @member_name: the name of the member
  * @member_node: the value of the member
- * @user_data: data passed to the function
+ * @user_data: (closure): data passed to the function
  *
  * The function to be passed to [method@Json.Object.foreach_member].
  *
@@ -142,7 +143,7 @@ typedef void (* JsonObjectForeach) (JsonObject  *object,
  * @array: the iterated JSON array
  * @index_: the index of the element
  * @element_node: the value of the element at the given @index_
- * @user_data: data passed to the function
+ * @user_data: (closure): data passed to the function
  *
  * The function to be passed to [method@Json.Array.foreach_element].
  *
@@ -533,5 +534,3 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (JsonNode, json_node_unref)
 #endif
 
 G_END_DECLS
-
-#endif /* __JSON_TYPES_H__ */

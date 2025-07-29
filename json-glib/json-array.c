@@ -1,8 +1,10 @@
 /* json-array.c - JSON array implementation
  * 
  * This file is part of JSON-GLib
- * Copyright (C) 2007  OpenedHand Ltd.
- * Copyright (C) 2009  Intel Corp.
+ *
+ * SPDX-FileCopyrightText: 2007  OpenedHand Ltd.
+ * SPDX-FileCopyrightText: 2009  Intel Corp.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -60,9 +62,9 @@ json_array_new (void)
 {
   JsonArray *array;
 
-  array = g_slice_new0 (JsonArray);
+  array = g_new0 (JsonArray, 1);
 
-  array->ref_count = 1;
+  g_ref_count_init (&array->ref_count);
   array->elements = g_ptr_array_new ();
 
   return array;
@@ -81,36 +83,12 @@ json_array_sized_new (guint n_elements)
 {
   JsonArray *array;
 
-  array = g_slice_new0 (JsonArray);
-  
-  array->ref_count = 1;
+  array = g_new0 (JsonArray, 1);
+
+  g_ref_count_init (&array->ref_count);
   array->elements = g_ptr_array_sized_new (n_elements);
 
   return array;
-}
-
-JsonArray *
-json_array_copy (JsonArray *array,
-                 JsonNode  *new_parent)
-{
-  JsonArray *copy;
-  guint i;
-
-  copy = json_array_sized_new (array->elements->len);
-  for (i = 0; i < array->elements->len; i++)
-    {
-      JsonNode *child_copy;
-
-      child_copy = json_node_copy (g_ptr_array_index (array->elements, i));
-      child_copy->parent = new_parent;
-      g_ptr_array_index (copy->elements, i) = child_copy;
-    }
-  copy->elements->len = array->elements->len;
-
-  copy->immutable_hash = array->immutable_hash;
-  copy->immutable = array->immutable;
-
-  return copy;
 }
 
 /**
@@ -126,9 +104,8 @@ JsonArray *
 json_array_ref (JsonArray *array)
 {
   g_return_val_if_fail (array != NULL, NULL);
-  g_return_val_if_fail (array->ref_count > 0, NULL);
 
-  array->ref_count++;
+  g_ref_count_inc (&array->ref_count);
 
   return array;
 }
@@ -146,19 +123,16 @@ void
 json_array_unref (JsonArray *array)
 {
   g_return_if_fail (array != NULL);
-  g_return_if_fail (array->ref_count > 0);
 
-  if (--array->ref_count == 0)
+  if (g_ref_count_dec (&array->ref_count))
     {
-      guint i;
-
-      for (i = 0; i < array->elements->len; i++)
+      for (guint i = 0; i < array->elements->len; i++)
         json_node_unref (g_ptr_array_index (array->elements, i));
 
       g_ptr_array_free (array->elements, TRUE);
       array->elements = NULL;
 
-      g_slice_free (JsonArray, array);
+      g_free (array);
     }
 }
 
@@ -177,16 +151,13 @@ json_array_unref (JsonArray *array)
 void
 json_array_seal (JsonArray *array)
 {
-  guint i;
-
   g_return_if_fail (array != NULL);
-  g_return_if_fail (array->ref_count > 0);
 
   if (array->immutable)
     return;
 
   /* Propagate to all members. */
-  for (i = 0; i < array->elements->len; i++)
+  for (guint i = 0; i < array->elements->len; i++)
     json_node_seal (g_ptr_array_index (array->elements, i));
 
   array->immutable_hash = json_array_hash (array);
@@ -207,7 +178,6 @@ gboolean
 json_array_is_immutable (JsonArray *array)
 {
   g_return_val_if_fail (array != NULL, FALSE);
-  g_return_val_if_fail (array->ref_count > 0, FALSE);
 
   return array->immutable;
 }
@@ -738,8 +708,8 @@ json_array_remove_element (JsonArray *array,
 /**
  * json_array_foreach_element:
  * @array: a JSON array
- * @func: (scope call): the function to be called on each element
- * @data: (closure): data to be passed to the function
+ * @func: (scope call) (closure data): the function to be called on each element
+ * @data: data to be passed to the function
  *
  * Iterates over all elements of an array, and calls a function on
  * each one of them.

@@ -1,7 +1,9 @@
 /* json-gvariant.c - JSON GVariant integration
  *
  * This file is part of JSON-GLib
- * Copyright (C) 2007  OpenedHand Ltd.
+ *
+ * SPDX-FileCopyrightText: 2007  OpenedHand Ltd.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -562,7 +564,7 @@ json_to_gvariant_tuple (JsonNode     *json_node,
       variant_child = json_to_gvariant_recurse (json_child, signature, error);
       if (variant_child != NULL)
         {
-          children = g_list_append (children, variant_child);
+          children = g_list_prepend (children, variant_child);
         }
       else
         {
@@ -572,6 +574,7 @@ json_to_gvariant_tuple (JsonNode     *json_node,
 
       i++;
     }
+  children = g_list_reverse (children);
 
   if (! roll_back)
     {
@@ -758,7 +761,7 @@ json_to_gvariant_array (JsonNode     *json_node,
                                                     error);
           if (variant_child != NULL)
             {
-              children = g_list_append (children, variant_child);
+              children = g_list_prepend (children, variant_child);
             }
           else
             {
@@ -766,6 +769,7 @@ json_to_gvariant_array (JsonNode     *json_node,
               break;
             }
         }
+      children = g_list_reverse (children);
     }
 
   if (!roll_back)

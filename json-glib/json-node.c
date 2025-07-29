@@ -1,9 +1,11 @@
 /* json-node.c - JSON object model node
  * 
  * This file is part of JSON-GLib
- * Copyright (C) 2007  OpenedHand Ltd.
- * Copyright (C) 2009  Intel Corp.
- * Copyright (C) 2015  Collabora Ltd.
+ *
+ * SPDX-FileCopyrightText: 2007  OpenedHand Ltd.
+ * SPDX-FileCopyrightText: 2009  Intel Corp.
+ * SPDX-FileCopyrightText: 2015  Collabora Ltd.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -127,8 +129,9 @@ json_node_alloc (void)
 {
   JsonNode *node = NULL;
 
-  node = g_slice_new0 (JsonNode);
-  node->ref_count = 1;
+  node = g_new0 (JsonNode, 1);
+  g_atomic_ref_count_init (&node->ref_count);
+
   node->allocated = TRUE;
 
   return node;
@@ -180,7 +183,7 @@ json_node_init (JsonNode *node,
 {
   g_return_val_if_fail (type >= JSON_NODE_OBJECT &&
                         type <= JSON_NODE_NULL, NULL);
-  g_return_val_if_fail (node->ref_count == 1, NULL);
+  g_return_val_if_fail (g_atomic_ref_count_compare (&node->ref_count, 1), NULL);
 
   json_node_unset (node);
 
@@ -400,7 +403,9 @@ json_node_new (JsonNodeType type)
  *
  * Copies @node.
  *
- * If the node contains complex data types, those will also be copied.
+ * If the node contains complex data types, their reference
+ * counts are increased, regardless of whether the node is mutable or
+ * immutable.
  *
  * The copy will be immutable if, and only if, @node is immutable. However,
  * there should be no need to copy an immutable node.
@@ -430,11 +435,11 @@ json_node_copy (JsonNode *node)
   switch (copy->type)
     {
     case JSON_NODE_OBJECT:
-      copy->data.object = json_object_copy (node->data.object, copy);
+      copy->data.object = json_node_dup_object (node);
       break;
 
     case JSON_NODE_ARRAY:
-      copy->data.array = json_array_copy (node->data.array, copy);
+      copy->data.array = json_node_dup_array (node);
       break;
 
     case JSON_NODE_VALUE:
@@ -466,7 +471,7 @@ json_node_ref (JsonNode *node)
 {
   g_return_val_if_fail (JSON_NODE_IS_VALID (node), NULL);
 
-  g_atomic_int_inc (&node->ref_count);
+  g_atomic_ref_count_inc (&node->ref_count);
 
   return node;
 }
@@ -486,11 +491,14 @@ json_node_unref (JsonNode *node)
 {
   g_return_if_fail (JSON_NODE_IS_VALID (node));
 
-  if (g_atomic_int_dec_and_test (&node->ref_count))
+  if (g_atomic_ref_count_dec (&node->ref_count))
     {
+      /* We do not call json_node_free() because json_node_free() will
+       * check the reference count for other reference holders
+       */
       json_node_unset (node);
       if (node->allocated)
-        g_slice_free (JsonNode, node);
+        g_free (node);
     }
 }
 
@@ -842,11 +850,11 @@ json_node_free (JsonNode *node)
 
   if (G_LIKELY (node))
     {
-      if (node->ref_count > 1)
+      if (!g_atomic_ref_count_compare (&node->ref_count, 1))
         g_warning ("Freeing a JsonNode %p owned by other code.", node);
 
       json_node_unset (node);
-      g_slice_free (JsonNode, node);
+      g_free (node);
     }
 }
 
@@ -1441,11 +1449,7 @@ json_node_hash (gconstpointer key)
     case JSON_NODE_OBJECT:
       return object_hash ^ json_object_hash (json_node_get_object (node));
     default:
-#ifdef G_DISABLE_CHECKS
-      g_abort ();
-#else
       g_assert_not_reached ();
-#endif
     }
 }
 
@@ -1552,10 +1556,6 @@ json_node_equal (gconstpointer  a,
     }
     case JSON_VALUE_INVALID:
     default:
-#ifdef G_DISABLE_CHECKS
-      g_abort ();
-#else
       g_assert_not_reached ();
-#endif
     }
 }

@@ -1,8 +1,10 @@
 /* json-types-private.h - JSON data types private header
  * 
  * This file is part of JSON-GLib
- * Copyright (C) 2007  OpenedHand Ltd
- * Copyright (C) 2009  Intel Corp.
+ *
+ * SPDX-FileCopyrightText: 2007  OpenedHand Ltd
+ * SPDX-FileCopyrightText: 2009  Intel Corp.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,8 +23,7 @@
  *   Emmanuele Bassi  <ebassi@linux.intel.com>
  */
 
-#ifndef __JSON_TYPES_PRIVATE_H__
-#define __JSON_TYPES_PRIVATE_H__
+#pragma once
 
 #include "json-types.h"
 
@@ -50,9 +51,10 @@ struct _JsonNode
   /*< private >*/
   JsonNodeType type;
 
-  volatile gint ref_count;
-  gboolean immutable : 1;
-  gboolean allocated : 1;
+  gatomicrefcount ref_count;
+
+  gboolean immutable;
+  gboolean allocated;
 
   union {
     JsonObject *object;
@@ -78,8 +80,8 @@ struct _JsonValue
 {
   JsonValueType type;
 
-  volatile gint ref_count;
-  gboolean immutable : 1;
+  grefcount ref_count;
+  gboolean immutable;
 
   union {
     gint64 v_int;
@@ -93,21 +95,23 @@ struct _JsonArray
 {
   GPtrArray *elements;
 
+  grefcount ref_count;
+
   guint immutable_hash;  /* valid iff immutable */
-  volatile gint ref_count;
-  gboolean immutable : 1;
+  gboolean immutable;
 };
 
 struct _JsonObject
 {
   GHashTable *members;
 
+  grefcount ref_count;
+
   GQueue members_ordered;
 
   int age;
   guint immutable_hash;  /* valid iff immutable */
-  volatile gint ref_count;
-  gboolean immutable : 1;
+  gboolean immutable;
 };
 
 typedef struct
@@ -183,14 +187,4 @@ void            json_value_seal                 (JsonValue       *value);
 G_GNUC_INTERNAL
 guint           json_value_hash                 (gconstpointer    key);
 
-G_GNUC_INTERNAL
-JsonArray *     json_array_copy                 (JsonArray       *array,
-                                                 JsonNode        *new_parent);
-
-G_GNUC_INTERNAL
-JsonObject *    json_object_copy                (JsonObject      *object,
-                                                 JsonNode        *new_parent);
-
 G_END_DECLS
-
-#endif /* __JSON_TYPES_PRIVATE_H__ */

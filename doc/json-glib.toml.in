@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2021 Emmanuele Bassi
+# SPDX-License-Identifier: CC0-1.0
 [library]
 namespace = "Json"
 version = "@JSON_VERSION@"
@@ -26,9 +28,11 @@ show_index_summary = true
 show_class_hierarchy = true
 
 [source-location]
-base_url = "https://gitlab.gnome.org/GNOME/json-glib/-/blob/master/"
+base_url = "https://gitlab.gnome.org/GNOME/json-glib/-/blob/main/"
 
 [extra]
+urlmap_file = "urlmap.js"
+content_base_url = "https://gitlab.gnome.org/GNOME/json-glib/-/blob/main/doc/"
 content_files = [
   'json-gboxed.md',
   'json-gobject.md',

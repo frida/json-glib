@@ -1,8 +1,10 @@
 /* json-generator.c - JSON tree builder
  *
  * This file is part of JSON-GLib
- * Copyright (C) 2010  Luca Bruno <lethalman88@gmail.com>
- * Copyright (C) 2015  Collabora Ltd.
+ *
+ * SPDX-FileCopyrightText: 2010  Luca Bruno <lethalman88@gmail.com>
+ * SPDX-FileCopyrightText: 2015  Collabora Ltd.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -130,7 +132,7 @@ json_builder_state_free (JsonBuilderState *state)
           g_assert_not_reached ();
         }
 
-      g_slice_free (JsonBuilderState, state);
+      g_free (state);
     }
 }
 
@@ -385,7 +387,7 @@ json_builder_begin_object (JsonBuilder *builder)
         }
     }
 
-  state = g_slice_new (JsonBuilderState);
+  state = g_new (JsonBuilderState, 1);
   state->data.object = object;
   state->member_name = NULL;
   state->mode = JSON_BUILDER_MODE_OBJECT;
@@ -479,7 +481,7 @@ json_builder_begin_array (JsonBuilder *builder)
         }
     }
 
-  state = g_slice_new (JsonBuilderState);
+  state = g_new (JsonBuilderState, 1);
   state->data.array = array;
   state->mode = JSON_BUILDER_MODE_ARRAY;
   g_queue_push_head (builder->priv->stack, state);
@@ -757,7 +759,7 @@ json_builder_add_boolean_value (JsonBuilder *builder,
  * @builder: a builder
  * @value: the value of the member or element
  *
- * Adds a boolean value to the currently open object member or array.
+ * Adds a string value to the currently open object member or array.
  *
  * If called after [method@Json.Builder.set_member_name], sets the given value
  * as the value of the current member in the open object; otherwise, the value

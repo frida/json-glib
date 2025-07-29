@@ -1,7 +1,9 @@
 /* json-gobject.c - JSON GObject integration
  * 
  * This file is part of JSON-GLib
- * Copyright (C) 2007  OpenedHand Ltd.
+ *
+ * SPDX-FileCopyrightText: 2007  OpenedHand Ltd.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -240,7 +242,7 @@ json_gobject_new (GType       gtype,
   retval = g_object_new_with_properties (gtype,
                                          construct_names->len,
                                          (const char **) construct_names->pdata,
-                                         (GValue *) construct_values->data);
+                                         (GValue *) ((gpointer) construct_values->data));
 
   g_ptr_array_unref (construct_names);
   g_array_unref (construct_values);

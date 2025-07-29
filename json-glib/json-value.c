@@ -1,8 +1,10 @@
 /* json-value.c - JSON value container
  * 
  * This file is part of JSON-GLib
- * Copyright (C) 2012  Emmanuele Bassi <ebassi@gnome.org>
- * Copyright (C) 2015 Collabora Ltd.
+ *
+ * SPDX-FileCopyrightText: 2012  Emmanuele Bassi
+ * SPDX-FileCopyrightText: 2015 Collabora Ltd.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -85,9 +87,9 @@ json_value_type (const JsonValue *value)
 JsonValue *
 json_value_alloc (void)
 {
-  JsonValue *res = g_slice_new0 (JsonValue);
+  JsonValue *res = g_new0 (JsonValue, 1);
 
-  res->ref_count = 1;
+  g_ref_count_init (&res->ref_count);
 
   return res;
 }
@@ -111,7 +113,7 @@ json_value_ref (JsonValue *value)
 {
   g_return_val_if_fail (value != NULL, NULL);
 
-  value->ref_count++;
+  g_ref_count_inc (&value->ref_count);
 
   return value;
 }
@@ -121,7 +123,7 @@ json_value_unref (JsonValue *value)
 {
   g_return_if_fail (value != NULL);
 
-  if (--value->ref_count == 0)
+  if (g_ref_count_dec (&value->ref_count))
     json_value_free (value);
 }
 
@@ -163,7 +165,7 @@ json_value_free (JsonValue *value)
   if (G_LIKELY (value != NULL))
     {
       json_value_unset (value);
-      g_slice_free (JsonValue, value);
+      g_free (value);
     }
 }
 
@@ -179,7 +181,6 @@ void
 json_value_seal (JsonValue *value)
 {
   g_return_if_fail (JSON_VALUE_IS_VALID (value));
-  g_return_if_fail (value->ref_count > 0);
 
   value->immutable = TRUE;
 }
@@ -224,7 +225,7 @@ json_value_hash (gconstpointer key)
     }
 
   /* Mask out the top 3 bits of the @value_hash. */
-  value_hash &= ~(7 << (sizeof (guint) * 8 - 3));
+  value_hash &= ~(7u << (sizeof (guint) * 8 - 3));
 
   return (type_hash | value_hash);
 }

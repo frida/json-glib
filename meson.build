@@ -1,12 +1,19 @@
+# SPDX-FileCopyrightText: 2016 Samsung
+# SPDX-FileCopyrightText: 2017 Emmanuele Bassi
+# SPDX-FileCopyrightText: 2018 Collabora Ltd
+# SPDX-FileCopyrightText: 2020 Collabora Ltd
+#
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
 project('json-glib', 'c',
-  version: '1.7.1',
+  version: '1.10.7',
   license: 'LGPL-2.1-or-later',
   default_options: [
     'warning_level=2',
     'buildtype=debugoptimized',
     'c_std=gnu99',
   ],
-  meson_version: '>= 0.62.0',
+  meson_version: '>= 1.2.0',
 )
 
 # Versioning
@@ -31,16 +38,15 @@ libversion = '@0@.@1@.@2@'.format(soversion, json_binary_age - json_interface_ag
 darwin_versions = [ current + 1, '@0@.@1@'.format(current + 1, revision) ]
 
 # Paths
-json_includedir = join_paths(get_option('prefix'), get_option('includedir'))
-json_datadir = join_paths(get_option('prefix'), get_option('datadir'))
-json_mandir = join_paths(get_option('prefix'), get_option('mandir'))
-json_localedir = join_paths(get_option('prefix'), get_option('localedir'))
-json_libexecdir = join_paths(get_option('prefix'), get_option('libexecdir'))
+json_includedir = get_option('prefix') / get_option('includedir')
+json_datadir = get_option('prefix') / get_option('datadir')
+json_mandir = get_option('prefix') / get_option('mandir')
+json_localedir = get_option('prefix') / get_option('localedir')
+json_libexecdir = get_option('prefix') / get_option('libexecdir')
 
 # Dependencies
-glib_req_version = '>= 2.54.0'
-gio_dep = dependency('gio-2.0', version: glib_req_version,
-  fallback: ['glib', 'libgio_dep'])
+glib_req_version = '>= 2.72.0'
+gio_dep = dependency('gio-2.0', version: glib_req_version)
 
 # Configurations
 cc = meson.get_compiler('c')
@@ -59,10 +65,12 @@ endforeach
 
 cdata.set_quoted('GETTEXT_PACKAGE', json_gettext_domain)
 
-ndebug = get_option('b_ndebug')
-if ndebug == 'true' or (ndebug == 'if-release' and not get_option('debug'))
-  add_project_arguments(['-DG_DISABLE_CAST_CHECKS', '-DG_DISABLE_ASSERT', '-DG_DISABLE_CHECKS'],
-                        language: 'c')
+if get_option('default_library') == 'static'
+  cdata.set('JSON_STATIC_BUILD', true)
+endif
+
+if get_option('debug')
+  cdata.set('JSON_ENABLE_DEBUG', true)
 endif
 
 if cc.get_id() == 'msvc'
@@ -126,28 +134,7 @@ else
   test_cflags = []
 endif
 
-if get_option('default_library') != 'static'
-  if host_system == 'windows'
-    cdata.set('DLL_EXPORT', true)
-    cdata.set('_JSON_EXTERN', '__declspec(dllexport) extern')
-    if cc.get_id() != 'msvc'
-      test_cflags += '-fvisibility=hidden'
-    endif
-  else
-    cdata.set('_JSON_EXTERN', '__attribute__((visibility("default"))) extern')
-    test_cflags += '-fvisibility=hidden'
-  endif
-endif
-
 common_cflags = cc.get_supported_arguments(test_cflags)
-
-if meson.is_subproject() and cc.get_argument_syntax() != 'msvc'
-  common_cflags += '-w'
-endif
-
-if get_option('debug')
-  cdata.set('JSON_ENABLE_DEBUG', true)
-endif
 
 common_ldflags = cc.get_supported_link_arguments([
   '-Wl,-Bsymbolic',
@@ -160,20 +147,28 @@ root_dir = include_directories('.')
 
 gnome = import('gnome')
 
+gir = find_program('g-ir-scanner', required: get_option('introspection'))
+build_gir = gir.found() and get_option('introspection').allowed() and meson.can_run_host_binaries()
+build_doc = build_gir and get_option('documentation').allowed()
+
+if get_option('introspection').disabled() and get_option('documentation').enabled()
+  error('Cannot build documentation without introspection')
+endif
+
 python3 = import('python').find_installation()
 gen_installed_test = files('build-aux/gen-installed-test.py')
 
 subdir('json-glib')
 
 # xgettext is optional (on Windows for instance)
-if find_program('xgettext', required : get_option('nls')).found()
+if find_program('xgettext', required: get_option('nls')).found()
   subdir('po')
 endif
 
 subdir('doc')
 
 if not meson.is_subproject()
-    meson.add_dist_script('build-aux/dist-docs.py')
+  meson.add_dist_script('build-aux/dist-docs.py')
 endif
 
 summary({
@@ -186,10 +181,13 @@ summary({
 )
 
 summary({
-    'Introspection': get_option('introspection').enabled() or get_option('introspection').auto(),
-    'Documentation': get_option('gtk_doc').enabled() or get_option('gtk_doc').auto(),
+    'Localization': get_option('nls'),
+    'Introspection': build_gir,
+    'Documentation': build_doc,
     'Manual pages': get_option('man'),
     'Tests': get_option('tests'),
+    'Installed tests': get_option('installed_tests'),
+    'Conformance tests': get_option('conformance'),
   },
   section: 'Build',
   bool_yn: true,

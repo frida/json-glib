@@ -1,3 +1,14 @@
+// SPDX-FileCopyrightText: 2008 OpenedHand Ltd.
+// SPDX-FileCopyrightText: 2011 Intel Corp.
+// SPDX-FileCopyrightText: 2012 Emmanuele Bassi
+// SPDX-FileCopyrightText: 2014 Stef Walter
+// SPDX-FileCopyrightText: 2015 djcb
+// SPDX-FileCopyrightText: 2017 Dr. David Alan Gilbert
+// SPDX-FileCopyrightText: 2022 Frederic Martinsons
+// SPDX-FileCopyrightText: 2024 Mark Nauwelaerts
+//
+// SPDX-License-Identifier: LGPL-2.1-or-later
+
 #include "config.h"
 
 #include <stdlib.h>
@@ -76,7 +87,7 @@ test_empty_array (void)
   root = json_node_new (JSON_NODE_ARRAY);
   json_node_take_array (root, json_array_new ());
 
-  json_generator_set_root (gen, root);
+  json_generator_take_root (gen, root);
   g_object_set (gen, "pretty", FALSE, "indent", 0, "indent-char", ' ', NULL);
 
   data = json_generator_to_data (gen, &len);
@@ -89,7 +100,6 @@ test_empty_array (void)
   g_assert_cmpint (json_generator_get_indent_char (gen), ==, ' ');
 
   g_free (data);
-  json_node_free (root);
   g_object_unref (gen);
 }
 
@@ -104,7 +114,7 @@ test_empty_object (void)
   root = json_node_new (JSON_NODE_OBJECT);
   json_node_take_object (root, json_object_new ());
 
-  json_generator_set_root (gen, root);
+  json_generator_take_root (gen, root);
   g_object_set (gen, "pretty", FALSE, NULL);
 
   data = json_generator_to_data (gen, &len);
@@ -113,7 +123,6 @@ test_empty_object (void)
   g_assert_cmpstr (data, ==, empty_object);
 
   g_free (data);
-  json_node_free (root);
   g_object_unref (gen);
 }
 
@@ -136,7 +145,7 @@ test_simple_array (void)
   json_array_add_string_element (array, "foo");
 
   json_node_take_array (root, array);
-  json_generator_set_root (generator, root);
+  json_generator_take_root (generator, root);
 
   g_object_set (generator, "pretty", FALSE, NULL);
   data = json_generator_to_data (generator, &len);
@@ -149,7 +158,6 @@ test_simple_array (void)
   g_assert_cmpstr (data, ==, simple_array);
 
   g_free (data);
-  json_node_free (root);
   g_object_unref (generator);
 }
 
@@ -179,7 +187,7 @@ test_nested_array (void)
   json_array_add_int_element (array, 42);
 
   json_node_take_array (root, array);
-  json_generator_set_root (generator, root);
+  json_generator_take_root (generator, root);
 
   g_object_set (generator, "pretty", FALSE, NULL);
   data = json_generator_to_data (generator, &len);
@@ -188,7 +196,6 @@ test_nested_array (void)
   g_assert_cmpstr (data, ==, nested_array);
 
   g_free (data);
-  json_node_free (root);
   g_object_unref (generator);
 }
 
@@ -212,7 +219,7 @@ test_simple_object (void)
   json_object_set_string_member (object, "String", "foo");
 
   json_node_take_object (root, object);
-  json_generator_set_root (generator, root);
+  json_generator_take_root (generator, root);
 
   g_object_set (generator, "pretty", FALSE, NULL);
   data = json_generator_to_data (generator, &len);
@@ -225,7 +232,6 @@ test_simple_object (void)
   g_assert_cmpstr (data, ==, simple_object);
 
   g_free (data);
-  json_node_free (root);
   g_object_unref (generator);
 }
 
@@ -271,7 +277,7 @@ test_nested_object (void)
   json_object_set_object_member (nested, "Image", object);
 
   json_node_take_object (root, nested);
-  json_generator_set_root (generator, root);
+  json_generator_take_root (generator, root);
 
   g_object_set (generator, "pretty", FALSE, NULL);
   data = json_generator_to_data (generator, &len);
@@ -284,7 +290,6 @@ test_nested_object (void)
   g_assert_cmpstr (data, ==, nested_object);
 
   g_free (data);
-  json_node_free (root);
   g_object_unref (generator);
 }
 
@@ -297,13 +302,13 @@ test_decimal_separator (void)
 
   json_node_set_double (node, 3.14);
 
-  json_generator_set_root (generator, node);
+  json_generator_take_root (generator, node);
 
   old_locale = setlocale (LC_NUMERIC, NULL);
 
   for (guint i = 0; i < G_N_ELEMENTS (decimal_separator); i++)
     {
-      gchar *str, *expected;
+      char *str, *expected;
 
       setlocale (LC_NUMERIC, decimal_separator[i].lang);
 
@@ -327,27 +332,49 @@ test_decimal_separator (void)
   setlocale (LC_NUMERIC, old_locale);
 
   g_object_unref (generator);
-  json_node_free (node);
 }
 
 
 static void
 test_double_stays_double (void)
 {
-  gchar *str;
   JsonNode *node = json_node_new (JSON_NODE_VALUE);
   JsonGenerator *generator = json_generator_new ();
 
   json_node_set_double (node, 1.0);
 
-  json_generator_set_root (generator, node);
+  json_generator_take_root (generator, node);
 
-  str = json_generator_to_data (generator, NULL);
+  char *str = json_generator_to_data (generator, NULL);
   g_assert_cmpstr (str, ==, "1.0");
+  g_free (str);
+
+  g_object_unref (generator);
+}
+
+static void
+test_double_valid (void)
+{
+  JsonNode *node = json_node_new (JSON_NODE_VALUE);
+  JsonGenerator *generator = json_generator_new ();
+
+  json_node_set_double (node, 1e-8);
+  json_generator_take_root (generator, node);
+
+  char *str = json_generator_to_data (generator, NULL);
+  g_test_message ("%s: value: '%.2f' - string: '%s'",
+                G_STRFUNC,
+                json_node_get_double (node),
+                str);
+
+  /* should be valid double
+   * in particular; no trailing .0 for exponential notation */
+  char *end = NULL;
+  g_ascii_strtod (str, &end);
+  g_assert_cmpint (0, ==, *end);
 
   g_free (str);
   g_object_unref (generator);
-  json_node_free (node);
 }
 
 
@@ -403,6 +430,7 @@ static const FixtureString string_fixtures[] = {
   { "a\nxc", "\"a\\nxc\"" },
   { "a\\xc", "\"a\\\\xc\"" },
   { "Barney B\303\244r", "\"Barney B\303\244r\"" },
+  { "a\x01\x1f\x20z", "\"a\\u0001\\u001f z\"" },
 };
 
 static void
@@ -439,6 +467,7 @@ main (int   argc,
   g_test_add_func ("/generator/nested-object", test_nested_object);
   g_test_add_func ("/generator/decimal-separator", test_decimal_separator);
   g_test_add_func ("/generator/double-stays-double", test_double_stays_double);
+  g_test_add_func ("/generator/double-valid", test_double_valid);
   g_test_add_func ("/generator/pretty", test_pretty);
 
   for (guint i = 0; i < G_N_ELEMENTS (string_fixtures); i++)

@@ -1,8 +1,10 @@
 /* json-generator.c - JSON streams generator
  *
  * This file is part of JSON-GLib
- * Copyright (C) 2007  OpenedHand Ltd.
- * Copyright (C) 2009  Intel Corp.
+ *
+ * SPDX-FileCopyrightText: 2007  OpenedHand Ltd.
+ * SPDX-FileCopyrightText: 2009  Intel Corp.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -93,7 +95,7 @@ json_strescape (GString     *output,
           g_string_append_c (output, '\\');
           g_string_append_c (output, *p);
         }
-      else if ((*p > 0 && *p < 0x1f) || *p == 0x7f)
+      else if ((*p > 0 && *p <= 0x1f) || *p == 0x7f)
         {
           switch (*p)
             {
@@ -360,7 +362,12 @@ dump_value (GString  *buffer,
                          g_ascii_dtostr (buf, sizeof (buf),
                                          json_value_get_double (value)));
 	/* ensure doubles don't become ints */
-	if (g_strstr_len (buf, G_ASCII_DTOSTR_BUF_SIZE, ".") == NULL)
+        /* also make sure not to append .0 that results in invalid exponential notation
+         * since the numbers should be decimal, a hex 'e' or "E" can not be mistaken
+         */
+	if (g_strstr_len (buf, G_ASCII_DTOSTR_BUF_SIZE, ".") == NULL &&
+            g_strstr_len (buf, G_ASCII_DTOSTR_BUF_SIZE, "e") == NULL &&
+            g_strstr_len (buf, G_ASCII_DTOSTR_BUF_SIZE, "E") == NULL)
 	  {
 	    g_string_append (buffer, ".0");
           }
@@ -635,6 +642,36 @@ json_generator_set_root (JsonGenerator *generator,
 
   if (node != NULL)
     generator->priv->root = json_node_copy (node);
+
+  g_object_notify_by_pspec (G_OBJECT (generator), generator_props[PROP_ROOT]);
+}
+
+/**
+ * json_generator_take_root:
+ * @generator: a generator
+ * @node: (transfer full) (nullable): the root node
+ *
+ * Sets the root of the JSON data stream to be serialized by
+ * the given generator.
+ *
+ * The ownership of the passed `node` is transferred to the generator object.
+ *
+ * Since: 1.10
+ */
+void
+json_generator_take_root (JsonGenerator *generator,
+                          JsonNode      *node)
+{
+  JsonGeneratorPrivate *priv = json_generator_get_instance_private (generator);
+
+  g_return_if_fail (JSON_IS_GENERATOR (generator));
+
+  if (generator->priv->root == node)
+    return;
+
+  g_clear_pointer (&priv->root, json_node_unref);
+  if (node != NULL)
+    priv->root = node;
 
   g_object_notify_by_pspec (G_OBJECT (generator), generator_props[PROP_ROOT]);
 }

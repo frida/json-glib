@@ -1,3 +1,10 @@
+# SPDX-FileCopyrightText: 2016 Thibault Saunier
+# SPDX-FileCopyrightText: 2017 Emmanuele Bassi
+# SPDX-FileCopyrightText: 2020 Endless
+# SPDX-FileCopyrightText: 2020 Jan-Michael Brummer
+#
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
 tests = [
   'array',
   'boxed',
@@ -21,10 +28,12 @@ test_data = [
   'stream-load.json',
 ]
 
-installed_test_bindir = join_paths(json_libexecdir, 'installed-tests', json_api_name)
-installed_test_datadir = join_paths(json_datadir, 'installed-tests', json_api_name)
+installed_test_bindir = json_libexecdir / 'installed-tests' / json_api_name
+installed_test_datadir = json_datadir / 'installed-tests' / json_api_name
 
-install_data(test_data, install_dir: installed_test_bindir)
+if get_option('installed_tests')
+  install_data(test_data, install_dir: installed_test_bindir)
+endif
 
 foreach t: tests
   installed_test = '@0@.test'.format(t)
@@ -39,14 +48,14 @@ foreach t: tests
       '--outdir=@OUTDIR@',
       '--outfile=@0@'.format(installed_test),
     ],
-    install: true,
+    install: get_option('installed_tests'),
     install_dir: installed_test_datadir,
   )
 
   exe = executable(
     t, '@0@.c'.format(t),
     c_args: json_c_args,
-    install: true,
+    install: get_option('installed_tests'),
     install_dir: installed_test_bindir,
     dependencies: [ json_glib_dep, ],
   )
@@ -60,3 +69,7 @@ foreach t: tests
     ],
   )
 endforeach
+
+if get_option('conformance')
+  subdir('conformance')
+endif

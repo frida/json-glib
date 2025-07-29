@@ -1,8 +1,10 @@
 /* json-object.c - JSON object implementation
  * 
  * This file is part of JSON-GLib
- * Copyright (C) 2007  OpenedHand Ltd.
- * Copyright (C) 2009  Intel Corp.
+ *
+ * SPDX-FileCopyrightText: 2007  OpenedHand Ltd.
+ * SPDX-FileCopyrightText: 2009  Intel Corp.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -65,45 +67,17 @@ json_object_new (void)
 {
   JsonObject *object;
 
-  object = g_slice_new0 (JsonObject);
+  object = g_new0 (JsonObject, 1);
+
+  g_ref_count_init (&object->ref_count);
 
   object->age = 0;
-  object->ref_count = 1;
   object->members = g_hash_table_new_full (g_str_hash, g_str_equal,
                                            g_free,
                                            (GDestroyNotify) json_node_unref);
   g_queue_init (&object->members_ordered);
 
   return object;
-}
-
-JsonObject *
-json_object_copy (JsonObject *object,
-                  JsonNode   *new_parent)
-{
-  JsonObject *copy;
-  GList *cur;
-
-  copy = json_object_new ();
-
-  for (cur = object->members_ordered.head; cur; cur = cur->next)
-    {
-      gchar *name;
-      JsonNode *child_copy;
-
-      name = g_strdup (cur->data);
-
-      child_copy = json_node_copy (g_hash_table_lookup (object->members, name));
-      child_copy->parent = new_parent;
-
-      g_hash_table_insert (copy->members, name, child_copy);
-      g_queue_push_tail (&copy->members_ordered, name);
-    }
-
-  copy->immutable_hash = object->immutable_hash;
-  copy->immutable = object->immutable;
-
-  return copy;
 }
 
 /**
@@ -119,9 +93,8 @@ JsonObject *
 json_object_ref (JsonObject *object)
 {
   g_return_val_if_fail (object != NULL, NULL);
-  g_return_val_if_fail (object->ref_count > 0, NULL);
 
-  object->ref_count++;
+  g_ref_count_inc (&object->ref_count);
 
   return object;
 }
@@ -139,15 +112,14 @@ void
 json_object_unref (JsonObject *object)
 {
   g_return_if_fail (object != NULL);
-  g_return_if_fail (object->ref_count > 0);
 
-  if (--object->ref_count == 0)
+  if (g_ref_count_dec (&object->ref_count))
     {
       g_queue_clear (&object->members_ordered);
       g_hash_table_destroy (object->members);
       object->members = NULL;
 
-      g_slice_free (JsonObject, object);
+      g_free (object);
     }
 }
 
@@ -170,7 +142,6 @@ json_object_seal (JsonObject *object)
   JsonNode *node;
 
   g_return_if_fail (object != NULL);
-  g_return_if_fail (object->ref_count > 0);
 
   if (object->immutable)
     return;
@@ -199,7 +170,6 @@ gboolean
 json_object_is_immutable (JsonObject *object)
 {
   g_return_val_if_fail (object != NULL, FALSE);
-  g_return_val_if_fail (object->ref_count > 0, FALSE);
 
   return object->immutable;
 }
@@ -637,7 +607,8 @@ json_object_get_ ##type_name## _member_with_default (JsonObject *object, \
   if (JSON_NODE_HOLDS_NULL (node)) \
     return default_value; \
 \
-  g_return_val_if_fail (JSON_NODE_TYPE (node) == JSON_NODE_VALUE, default_value); \
+  if (JSON_NODE_TYPE (node) != JSON_NODE_VALUE) \
+    return default_value; \
 \
   return json_node_get_ ##type_name (node); \
 }
@@ -649,7 +620,8 @@ json_object_get_ ##type_name## _member_with_default (JsonObject *object, \
  *
  * Convenience function that retrieves the integer value
  * stored in @member_name of @object. It is an error to specify a
- * @member_name which does not exist.
+ * @member_name which does not exist or which holds a non-scalar,
+ * non-`null` value.
  *
  * See also: [method@Json.Object.get_int_member_with_default],
  *   [method@Json.Object.get_member], [method@Json.Object.has_member]
@@ -670,7 +642,9 @@ JSON_OBJECT_GET (gint64, int)
  * stored in @member_name of @object.
  *
  * If @member_name does not exist, does not contain a scalar value,
- * or contains `null`, then @default_value is returned instead.
+ * or contains `null`, then @default_value is returned instead. If
+ * @member_name contains a non-integer, non-`null` scalar value, then whatever
+ * json_node_get_int() would return is returned.
  *
  * Returns: the integer value of the object's member, or the
  *   given default
@@ -686,7 +660,8 @@ JSON_OBJECT_GET_DEFAULT (gint64, int)
  *
  * Convenience function that retrieves the floating point value
  * stored in @member_name of @object. It is an error to specify a
- * @member_name which does not exist.
+ * @member_name which does not exist or which holds a non-scalar,
+ * non-`null` value.
  *
  * See also: [method@Json.Object.get_double_member_with_default],
  *   [method@Json.Object.get_member], [method@Json.Object.has_member]
@@ -707,7 +682,9 @@ JSON_OBJECT_GET (gdouble, double)
  * stored in @member_name of @object.
  *
  * If @member_name does not exist, does not contain a scalar value,
- * or contains `null`, then @default_value is returned instead.
+ * or contains `null`, then @default_value is returned instead. If
+ * @member_name contains a non-double, non-`null` scalar value, then
+ * whatever json_node_get_double() would return is returned.
  *
  * Returns: the floating point value of the object's member, or the
  *   given default
@@ -723,7 +700,8 @@ JSON_OBJECT_GET_DEFAULT (double, double)
  *
  * Convenience function that retrieves the boolean value
  * stored in @member_name of @object. It is an error to specify a
- * @member_name which does not exist.
+ * @member_name which does not exist or which holds a non-scalar,
+ * non-`null` value.
  *
  * See also: [method@Json.Object.get_boolean_member_with_default],
  *   [method@Json.Object.get_member], [method@Json.Object.has_member]
@@ -744,7 +722,9 @@ JSON_OBJECT_GET (gboolean, boolean)
  * stored in @member_name of @object.
  *
  * If @member_name does not exist, does not contain a scalar value,
- * or contains `null`, then @default_value is returned instead.
+ * or contains `null`, then @default_value is returned instead. If
+ * @member_name contains a non-boolean, non-`null` scalar value, then
+ * whatever json_node_get_boolean() would return is returned.
  *
  * Returns: the boolean value of the object's member, or the
  *   given default
@@ -760,7 +740,8 @@ JSON_OBJECT_GET_DEFAULT (gboolean, boolean)
  *
  * Convenience function that retrieves the string value
  * stored in @member_name of @object. It is an error to specify a
- * @member_name that does not exist.
+ * @member_name that does not exist or which holds a non-scalar,
+ * non-`null` value.
  *
  * See also: [method@Json.Object.get_string_member_with_default],
  *   [method@Json.Object.get_member], [method@Json.Object.has_member]
@@ -781,7 +762,9 @@ JSON_OBJECT_GET (const gchar *, string)
  * stored in @member_name of @object.
  *
  * If @member_name does not exist, does not contain a scalar value,
- * or contains `null`, then @default_value is returned instead.
+ * or contains `null`, then @default_value is returned instead. If
+ * @member_name contains a non-string, non-`null` scalar value, then
+ * %NULL is returned.
  *
  * Returns: the string value of the object's member, or the
  *   given default
@@ -836,7 +819,8 @@ json_object_get_null_member (JsonObject  *object,
  *
  * Convenience function that retrieves the array
  * stored in @member_name of @object. It is an error to specify a
- * @member_name which does not exist.
+ * @member_name which does not exist or which holds a non-`null`, non-array
+ * value.
  *
  * If @member_name contains `null`, then this function will return `NULL`.
  *
@@ -872,7 +856,7 @@ json_object_get_array_member (JsonObject  *object,
  *
  * Convenience function that retrieves the object
  * stored in @member_name of @object. It is an error to specify a @member_name
- * which does not exist.
+ * which does not exist or which holds a non-`null`, non-object value.
  *
  * If @member_name contains `null`, then this function will return `NULL`.
  *
@@ -969,8 +953,8 @@ json_object_remove_member (JsonObject  *object,
 /**
  * json_object_foreach_member:
  * @object: a JSON object
- * @func: (scope call): the function to be called on each member
- * @data: (closure): data to be passed to the function
+ * @func: (scope call) (closure data): the function to be called on each member
+ * @data: data to be passed to the function
  *
  * Iterates over all members of @object and calls @func on
  * each one of them.
@@ -1138,7 +1122,6 @@ json_object_iter_init (JsonObjectIter  *iter,
 
   g_return_if_fail (iter != NULL);
   g_return_if_fail (object != NULL);
-  g_return_if_fail (object->ref_count > 0);
 
   iter_real->object = object;
   g_hash_table_iter_init (&iter_real->members_iter, object->members);
@@ -1182,7 +1165,6 @@ json_object_iter_next (JsonObjectIter  *iter,
 
   g_return_val_if_fail (iter != NULL, FALSE);
   g_return_val_if_fail (iter_real->object != NULL, FALSE);
-  g_return_val_if_fail (iter_real->object->ref_count > 0, FALSE);
 
   return g_hash_table_iter_next (&iter_real->members_iter,
                                  (gpointer *) member_name,
@@ -1220,7 +1202,6 @@ json_object_iter_init_ordered (JsonObjectIter  *iter,
 
   g_return_if_fail (iter != NULL);
   g_return_if_fail (object != NULL);
-  g_return_if_fail (object->ref_count > 0);
 
   iter_real->object = object;
   iter_real->cur_member = NULL;
@@ -1266,7 +1247,6 @@ json_object_iter_next_ordered (JsonObjectIter  *iter,
 
   g_return_val_if_fail (iter != NULL, FALSE);
   g_return_val_if_fail (iter_real->object != NULL, FALSE);
-  g_return_val_if_fail (iter_real->object->ref_count > 0, FALSE);
   g_return_val_if_fail (iter_real->age == iter_real->object->age, FALSE);
 
   if (iter_real->cur_member == NULL)
@@ -1283,7 +1263,7 @@ json_object_iter_next_ordered (JsonObjectIter  *iter,
       if (name != NULL)
         *member_node = g_hash_table_lookup (iter_real->object->members, name);
       else
-        *member_name = NULL;
+        *member_node = NULL;
     }
 
   return iter_real->cur_member != NULL;
