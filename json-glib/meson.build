@@ -60,6 +60,7 @@ version_data.set('JSON_MAJOR_VERSION', json_version_major)
 version_data.set('JSON_MINOR_VERSION', json_version_minor)
 version_data.set('JSON_MICRO_VERSION', json_version_micro)
 version_data.set('JSON_VERSION', meson.project_version())
+version_data.set('JSON_STATIC_BUILD', get_option('default_library') == 'static')
 
 json_version_h = configure_file(
   input: 'json-version.h.in',

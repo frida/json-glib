@@ -65,10 +65,6 @@ endforeach
 
 cdata.set_quoted('GETTEXT_PACKAGE', json_gettext_domain)
 
-if get_option('default_library') == 'static'
-  cdata.set('JSON_STATIC_BUILD', true)
-endif
-
 if get_option('debug')
   cdata.set('JSON_ENABLE_DEBUG', true)
 endif
