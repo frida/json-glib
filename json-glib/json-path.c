@@ -506,6 +506,13 @@ json_path_compile (JsonPath    *path,
                           sign = 1;
 
                         slice_step = g_ascii_strtoll (end_p, (char **) &end_p, 10) * sign;
+                        if (slice_step == 0)
+                          {
+                            g_set_error_literal (error, JSON_PATH_ERROR,
+                                                 JSON_PATH_ERROR_INVALID_QUERY,
+                                                 "Slice step cannot be zero");
+                            goto fail;
+                          }
 
                         if (*end_p != ']')
                           {
@@ -602,6 +609,13 @@ json_path_compile (JsonPath    *path,
                           sign = 1;
 
                         slice_step = g_ascii_strtoll (end_p + 1, (char **) &end_p, 10) * sign;
+                        if (slice_step == 0)
+                          {
+                            g_set_error_literal (error, JSON_PATH_ERROR,
+                                                 JSON_PATH_ERROR_INVALID_QUERY,
+                                                 "Slice step cannot be zero");
+                            goto fail;
+                          }
                       }
 
                     if (*end_p != ']')
@@ -841,7 +855,7 @@ walk_path_node (GList      *path,
         {
           JsonArray *array = json_node_get_array (root);
           GList *elements, *l;
-          int i;
+          int i G_GNUC_UNUSED;
 
           elements = json_array_get_elements (array);
           for (l = elements, i = 0; l != NULL; l = l->next, i += 1)

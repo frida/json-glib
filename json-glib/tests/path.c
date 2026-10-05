@@ -101,6 +101,13 @@ static const struct {
     JSON_PATH_ERROR_INVALID_QUERY,
   },
   {
+    "INVALID: Malformed slice (zero step)",
+    "$.store.book[0:2:0]",
+    NULL,
+    FALSE,
+    JSON_PATH_ERROR_INVALID_QUERY,
+  },
+  {
     "Title of the first book in the store, using objct notation.",
     "$.store.book[0].title",
     "[\"Sayings of the Century\"]",

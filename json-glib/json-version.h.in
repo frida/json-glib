@@ -100,5 +100,3 @@
          (JSON_MAJOR_VERSION == (major) && JSON_MINOR_VERSION > (minor)) || \
          (JSON_MAJOR_VERSION == (major) && JSON_MINOR_VERSION == (minor) && \
           JSON_MICRO_VERSION >= (micro)))
-
-#mesondefine JSON_STATIC_BUILD

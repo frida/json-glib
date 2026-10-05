@@ -67,14 +67,14 @@ stages:
       - "${CI_PROJECT_DIR}/_build/meson-dist/${CI_PROJECT_NAME}-*.tar.xz"
 
 .fedora-build:
-  image: fedora:40
+  image: fedora:44
   before_script:
     - export PATH="$PATH:$HOME/.local/bin"
     - dnf install -y ${FEDORA_DEPS}
     - pip3 install --break-system-packages meson==${MESON_VERSION}
 
 .fedora-docs-build:
-  image: fedora:40
+  image: fedora:44
   before_script:
     - export PATH="$HOME/.local/bin:$PATH"
     - dnf install -y ${FEDORA_DEPS}

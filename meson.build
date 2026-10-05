@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 project('json-glib', 'c',
-  version: '1.10.7',
+  version: '1.10.9',
   license: 'LGPL-2.1-or-later',
   default_options: [
     'warning_level=2',
@@ -65,14 +65,13 @@ endforeach
 
 cdata.set_quoted('GETTEXT_PACKAGE', json_gettext_domain)
 
-if get_option('debug')
-  cdata.set('JSON_ENABLE_DEBUG', true)
+json_compile_args = []
+if get_option('default_library') == 'static'
+  json_compile_args += ['-DJSON_STATIC_BUILD']
 endif
 
-ndebug = get_option('b_ndebug')
-if ndebug == 'true' or (ndebug == 'if-release' and not get_option('debug'))
-  add_project_arguments(['-DG_DISABLE_CAST_CHECKS', '-DG_DISABLE_ASSERT', '-DG_DISABLE_CHECKS'],
-                        language: 'c')
+if get_option('debug')
+  json_compile_args += ['-DJSON_ENABLE_DEBUG']
 endif
 
 if cc.get_id() == 'msvc'
@@ -137,10 +136,6 @@ else
 endif
 
 common_cflags = cc.get_supported_arguments(test_cflags)
-
-if meson.is_subproject() and cc.get_argument_syntax() != 'msvc'
-  common_cflags += '-w'
-endif
 
 common_ldflags = cc.get_supported_link_arguments([
   '-Wl,-Bsymbolic',

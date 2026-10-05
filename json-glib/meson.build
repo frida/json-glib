@@ -60,7 +60,6 @@ version_data.set('JSON_MAJOR_VERSION', json_version_major)
 version_data.set('JSON_MINOR_VERSION', json_version_minor)
 version_data.set('JSON_MICRO_VERSION', json_version_micro)
 version_data.set('JSON_VERSION', meson.project_version())
-version_data.set('JSON_STATIC_BUILD', get_option('default_library') == 'static')
 
 json_version_h = configure_file(
   input: 'json-version.h.in',
@@ -85,7 +84,7 @@ json_lib = library(
   soversion: soversion,
   include_directories: root_dir,
   dependencies: [gio_dep],
-  c_args: json_c_args + common_cflags,
+  c_args: json_c_args + common_cflags + json_compile_args,
   link_args: common_ldflags,
   gnu_symbol_visibility: 'hidden',
   darwin_versions: darwin_versions,
@@ -93,8 +92,10 @@ json_lib = library(
 )
 
 pkgg = import('pkgconfig')
-pkgg.generate(json_lib,
+pkgg.generate(
+  libraries: json_lib,
   subdirs: json_api_name,
+  extra_cflags: json_compile_args,
   version: json_version,
   name: 'JSON-GLib',
   filebase: json_api_name,
@@ -129,6 +130,7 @@ endif
 
 json_glib_dep = declare_dependency(
   link_with: json_lib,
+  compile_args: json_compile_args,
   include_directories: root_dir,
   dependencies: [gio_dep],
   sources: [ json_enum_types_h, json_glib_gir ],
@@ -136,23 +138,22 @@ json_glib_dep = declare_dependency(
 
 meson.override_dependency(json_api_name, json_glib_dep)
 
-if host_system != 'none'
-  tools = [
-    [ 'json-glib-validate', [ 'json-glib-validate.c', ] ],
-    [ 'json-glib-format', [ 'json-glib-format.c', ] ],
-  ]
+tools = [
+  [ 'json-glib-validate', [ 'json-glib-validate.c', ] ],
+  [ 'json-glib-format', [ 'json-glib-format.c', ] ],
+]
 
-  foreach t: tools
-    bin_name = t[0]
-    bin_sources = t[1]
+foreach t: tools
+  bin_name = t[0]
+  bin_sources = t[1]
 
-    executable(bin_name, bin_sources,
-               c_args: json_c_args,
-               dependencies: json_glib_dep,
-               install: true)
-  endforeach
+  bin_exe = executable(bin_name, bin_sources,
+             c_args: json_c_args,
+             dependencies: json_glib_dep,
+             install: true)
+  meson.override_find_program(bin_name, bin_exe)
+endforeach
 
-  if get_option('tests')
-    subdir('tests')
-  endif
+if get_option('tests')
+  subdir('tests')
 endif
